@@ -1,0 +1,4 @@
+layer,nodes,edges,self_loops,total_weight
+1,545,1036,89,1036.0
+2,682,2606,1,2606.0
+3,541,4721,0,4721.0

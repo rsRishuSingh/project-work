@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kapferer-Tailor-Shop_multiplex-Copy1 multiplex graph report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --fg: #17202a;
+      --muted: #5e6b78;
+      --panel: #ffffff;
+      --soft: #eef3f7;
+      --line: #d8e0e7;
+      --bridge: #111827;
+      --inter: #64748b;
+      --top: #f59e0b;
+      --shadow: rgba(31, 41, 51, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      padding: 28px clamp(18px, 4vw, 48px) 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    main {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 22px 0 44px;
+    }
+    h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: 0; }
+    h1 { font-size: clamp(1.65rem, 3vw, 2.4rem); }
+    h2 { font-size: 1.18rem; margin-bottom: 12px; }
+    h3 { font-size: 1rem; }
+    p { margin: 8px 0 0; color: var(--muted); }
+    .meta, .controls, .checks, .legend, .metrics-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .meta { margin-top: 16px; }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: color-mix(in srgb, var(--panel) 84%, transparent);
+      color: var(--fg);
+      font-size: 0.9rem;
+    }
+    section {
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px var(--shadow);
+      padding: clamp(14px, 2vw, 22px);
+    }
+    .controls {
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    select, input[type="checkbox"] { accent-color: #0f766e; }
+    select {
+      min-width: 178px;
+      color: var(--fg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font: inherit;
+    }
+    .checks {
+      align-items: center;
+      margin: 6px 0 14px;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 4px 8px 4px 0;
+    }
+    .layer-checks {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+      gap: 6px 12px;
+      margin: 8px 0 14px;
+    }
+    .layer-option {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--fg);
+      min-width: 0;
+    }
+    .swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+    .network-frame {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(to bottom, transparent, color-mix(in srgb, var(--soft) 72%, transparent)),
+        var(--panel);
+    }
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .layer-guide {
+      stroke: var(--line);
+      stroke-width: 1;
+      stroke-dasharray: none;
+    }
+    .layer-panel {
+      fill: color-mix(in srgb, var(--soft) 68%, transparent);
+      stroke: var(--line);
+      stroke-width: 1;
+      rx: 8;
+    }
+    .layer-title {
+      font-size: 12px;
+      fill: var(--muted);
+      paint-order: stroke;
+      stroke: var(--panel);
+      stroke-width: 3px;
+    }
+    .edge {
+      stroke-linecap: round;
+      opacity: 0.52;
+    }
+    .edge.inter {
+      stroke: var(--inter);
+      stroke-dasharray: 6 6;
+      opacity: 0.45;
+    }
+    .edge.bridge {
+      stroke: var(--bridge);
+      opacity: 0.92;
+      stroke-dasharray: none;
+    }
+    .node {
+      stroke: var(--panel);
+      stroke-width: 1.6;
+      cursor: pointer;
+    }
+    .node.top {
+      stroke: var(--top);
+      stroke-width: 2.5;
+    }
+    .node.isolated {
+      fill: var(--panel);
+      stroke-width: 2.2;
+      stroke-dasharray: 3 3;
+    }
+    .node-label {
+      font-size: 11px;
+      fill: var(--fg);
+      paint-order: stroke;
+      stroke: var(--panel);
+      stroke-width: 3px;
+      pointer-events: none;
+    }
+    .legend {
+      align-items: center;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .metric {
+      min-width: 150px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: color-mix(in srgb, var(--panel) 86%, var(--soft));
+    }
+    .metric strong {
+      display: block;
+      color: var(--fg);
+      font-weight: 650;
+    }
+    .tooltip {
+      position: fixed;
+      max-width: 300px;
+      z-index: 3;
+      display: none;
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: var(--fg);
+      color: var(--bg);
+      box-shadow: 0 10px 24px var(--shadow);
+      font-size: 0.88rem;
+      pointer-events: none;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 650;
+      background: color-mix(in srgb, var(--panel) 90%, var(--bg));
+    }
+    td:first-child, th:first-child { padding-left: 0; }
+    .profile {
+      display: grid;
+      gap: 8px;
+    }
+    .profile-row {
+      display: grid;
+      grid-template-columns: minmax(70px, 120px) 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .profile-label {
+      font-size: 0.88rem;
+      color: var(--fg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .bar {
+      height: 20px;
+      display: flex;
+      gap: 2px;
+      min-width: 160px;
+    }
+    .segment {
+      min-width: 2px;
+      opacity: 0.9;
+    }
+    footer {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto 28px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    @media (max-width: 720px) {
+      th, td { padding: 7px 8px; }
+      .profile-row { grid-template-columns: 1fr; }
+      .bar { min-width: 0; }
+      select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kapferer-Tailor-Shop_multiplex-Copy1</h1>
+    <p>Multiplex graph influence report with layer colors, intra/inter-layer views, bridge highlighting, isolated-node display, and influence intensity mode.</p>
+    <div class="meta">
+      <span class="pill">39 nodes</span>
+      <span class="pill">1,018 raw edges</span>
+      <span class="pill">4 layers</span>
+      <span class="pill">Undirected analysis</span>
+      <span class="pill">39 candidate nodes</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Interactive network</h2>
+      <div class="controls">
+        <label>Mode
+          <select id="modeSelect">
+            <option value="aggregate">All layers merged</option>
+            <option value="single">One layer - intra edges</option>
+            <option value="multi">Multiple layers - intra and inter edges</option>
+            <option value="influence">Influence mode</option>
+          </select>
+        </label>
+        <label>Layer
+          <select id="layerSelect"></select>
+        </label>
+        <label>Influence scope
+          <select id="influenceScope">
+            <option value="all">All selected layers</option>
+            <option value="layer">Selected layer</option>
+          </select>
+        </label>
+      </div>
+      <div id="layerChecks" class="layer-checks" aria-label="Layer filters"></div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="intraToggle" checked> Intra-layer edges</label>
+        <label class="check"><input type="checkbox" id="interToggle" checked> Inter-layer edges</label>
+        <label class="check"><input type="checkbox" id="bridgeToggle" checked> Highlight bridges</label>
+        <label class="check"><input type="checkbox" id="bridgeOnlyToggle"> Only bridges</label>
+        <label class="check"><input type="checkbox" id="isolatedToggle"> Show isolated nodes</label>
+        <label class="check"><input type="checkbox" id="labelToggle" checked> Show labels</label>
+      </div>
+      <div class="network-frame">
+        <svg id="networkSvg" viewBox="0 0 1060 650" role="img" aria-label="Multiplex graph visualization">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+      <div id="legend" class="legend"></div>
+      <p id="viewStatus">Ready.</p>
+    </section>
+
+    <section>
+      <h2>Influence focus</h2>
+      <div id="focusMetrics" class="metrics-strip" aria-live="polite"></div>
+      <p>In influence mode, each node uses its layer color. Darker nodes are more influential in the selected layer or across the selected layers.</p>
+    </section>
+
+    <section>
+      <h2>Layer profile of top nodes</h2>
+      <div id="profile" class="profile" aria-label="Layer contribution bars"></div>
+    </section>
+
+    <section class="grid">
+      <div>
+        <h2>Top influential nodes</h2>
+        <div class="table-scroll"><table><thead><tr><th>Rank</th><th>Node</th><th>Influence</th><th>Strength</th><th>Degree</th><th>PageRank</th><th>Betweenness</th><th>Layers</th><th>Participation</th></tr></thead><tbody><tr><td>1</td><td>16</td><td>0.9403</td><td>124.00</td><td>30</td><td>0.0554</td><td>42.19</td><td>4</td><td>0.9206</td></tr><tr><td>2</td><td>11</td><td>0.9386</td><td>118.00</td><td>31</td><td>0.0530</td><td>48.11</td><td>4</td><td>0.9769</td></tr><tr><td>3</td><td>19</td><td>0.9173</td><td>108.00</td><td>31</td><td>0.0494</td><td>57.57</td><td>4</td><td>0.8816</td></tr><tr><td>4</td><td>3</td><td>0.7323</td><td>97.00</td><td>22</td><td>0.0439</td><td>17.59</td><td>4</td><td>0.9761</td></tr><tr><td>5</td><td>24</td><td>0.7085</td><td>87.00</td><td>24</td><td>0.0404</td><td>26.02</td><td>4</td><td>0.8885</td></tr><tr><td>6</td><td>34</td><td>0.6505</td><td>81.00</td><td>21</td><td>0.0378</td><td>16.69</td><td>4</td><td>0.9186</td></tr><tr><td>7</td><td>13</td><td>0.6228</td><td>69.00</td><td>26</td><td>0.0325</td><td>27.83</td><td>4</td><td>0.8334</td></tr><tr><td>8</td><td>12</td><td>0.6041</td><td>75.00</td><td>20</td><td>0.0346</td><td>12.33</td><td>4</td><td>0.9178</td></tr><tr><td>9</td><td>32</td><td>0.5743</td><td>73.00</td><td>17</td><td>0.0342</td><td>5.3828</td><td>4</td><td>0.9368</td></tr><tr><td>10</td><td>30</td><td>0.5458</td><td>66.00</td><td>19</td><td>0.0309</td><td>9.1807</td><td>4</td><td>0.8675</td></tr><tr><td>11</td><td>29</td><td>0.5406</td><td>60.00</td><td>20</td><td>0.0291</td><td>13.44</td><td>4</td><td>0.9148</td></tr><tr><td>12</td><td>14</td><td>0.5253</td><td>57.00</td><td>19</td><td>0.0274</td><td>13.21</td><td>4</td><td>0.9307</td></tr><tr><td>13</td><td>28</td><td>0.5227</td><td>52.00</td><td>18</td><td>0.0267</td><td>18.45</td><td>4</td><td>0.8984</td></tr><tr><td>14</td><td>25</td><td>0.5220</td><td>54.00</td><td>25</td><td>0.0263</td><td>23.55</td><td>4</td><td>0.6804</td></tr><tr><td>15</td><td>7</td><td>0.5208</td><td>61.00</td><td>18</td><td>0.0287</td><td>7.7119</td><td>4</td><td>0.9073</td></tr><tr><td>16</td><td>5</td><td>0.5092</td><td>57.00</td><td>17</td><td>0.0272</td><td>11.23</td><td>4</td><td>0.8503</td></tr><tr><td>17</td><td>21</td><td>0.5089</td><td>58.00</td><td>18</td><td>0.0276</td><td>11.11</td><td>4</td><td>0.8054</td></tr><tr><td>18</td><td>36</td><td>0.4697</td><td>51.00</td><td>17</td><td>0.0251</td><td>8.3240</td><td>4</td><td>0.8202</td></tr><tr><td>19</td><td>33</td><td>0.4532</td><td>47.00</td><td>15</td><td>0.0240</td><td>7.9097</td><td>4</td><td>0.8354</td></tr><tr><td>20</td><td>9</td><td>0.4381</td><td>48.00</td><td>12</td><td>0.0228</td><td>1.8590</td><td>4</td><td>0.9155</td></tr></tbody></table></div>
+      </div>
+      <div>
+        <h2>Layer summary</h2>
+        <div class="table-scroll"><table><thead><tr><th>Layer</th><th>Nodes</th><th>Edges</th><th>Self loops</th><th>Weight</th></tr></thead><tbody><tr><td>1</td><td>39</td><td>316</td><td>0</td><td>316.00</td></tr><tr><td>2</td><td>39</td><td>446</td><td>0</td><td>446.00</td></tr><tr><td>3</td><td>35</td><td>109</td><td>0</td><td>109.00</td></tr><tr><td>4</td><td>37</td><td>147</td><td>0</td><td>147.00</td></tr></tbody></table></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Influence score = 35% strength, 25% PageRank, 20% betweenness, 10% layer coverage, and 10% layer participation. Layer influence uses local layer strength and layer degree.
+  </footer>
+
+  <div id="tooltip" class="tooltip"></div>
+  <script>
+    const DATA = {"name":"Kapferer-Tailor-Shop_multiplex-Copy1","directed":false,"nodes":[{"id":"16","rank":1,"x":462.82,"y":345.84,"score":0.9403096393811254,"scoreLabel":"0.9403","strength":124.0,"degree":30,"pagerank":0.05544096782396922,"betweenness":42.1867610564039,"layerCount":4,"participation":0.920568851890392,"layerStrengths":{"1":48.0,"2":44.0,"3":18.0,"4":14.0},"top":true,"radius":22.0},{"id":"11","rank":2,"x":445.45,"y":333.81,"score":0.9385607562514249,"scoreLabel":"0.9386","strength":118.0,"degree":31,"pagerank":0.052974042101687054,"betweenness":48.10855170739623,"layerCount":4,"participation":0.9769223403236618,"layerStrengths":{"1":30.0,"2":38.0,"3":17.0,"4":33.0},"top":true,"radius":21.98},{"id":"19","rank":3,"x":476.36,"y":318.43,"score":0.9173360462639462,"scoreLabel":"0.9173","strength":108.0,"degree":31,"pagerank":0.04938831596968164,"betweenness":57.57428417754048,"layerCount":4,"participation":0.881572930955647,"layerStrengths":{"1":34.0,"2":50.0,"3":14.0,"4":10.0},"top":true,"radius":21.79},{"id":"3","rank":4,"x":399.06,"y":352.19,"score":0.7323018362220267,"scoreLabel":"0.7323","strength":97.0,"degree":22,"pagerank":0.043909253410846956,"betweenness":17.587341824841825,"layerCount":4,"participation":0.9760867254756085,"layerStrengths":{"1":26.0,"2":34.0,"3":17.0,"4":20.0},"top":true,"radius":20.0},{"id":"24","rank":5,"x":465.69,"y":265.4,"score":0.7085348413319292,"scoreLabel":"0.7085","strength":87.0,"degree":24,"pagerank":0.04038097202786712,"betweenness":26.01797619980393,"layerCount":4,"participation":0.888536574624565,"layerStrengths":{"1":22.0,"2":42.0,"3":9.0,"4":14.0},"top":true,"radius":19.76},{"id":"34","rank":6,"x":532.37,"y":362.27,"score":0.6505498505344397,"scoreLabel":"0.6505","strength":81.0,"degree":21,"pagerank":0.03778436129013187,"betweenness":16.691377110284673,"layerCount":4,"participation":0.9185591627292587,"layerStrengths":{"1":28.0,"2":32.0,"3":8.0,"4":13.0},"top":true,"radius":19.14},{"id":"13","rank":7,"x":455.25,"y":376.24,"score":0.6228349141835181,"scoreLabel":"0.6228","strength":69.0,"degree":26,"pagerank":0.032488519472970157,"betweenness":27.833831248116955,"layerCount":4,"participation":0.8334383532871246,"layerStrengths":{"1":20.0,"2":36.0,"3":5.0,"4":8.0},"top":true,"radius":18.84},{"id":"12","rank":8,"x":396.03,"y":377.21,"score":0.6040534265200311,"scoreLabel":"0.6041","strength":75.0,"degree":20,"pagerank":0.034608418285394474,"betweenness":12.326356976356974,"layerCount":4,"participation":0.9178074074074073,"layerStrengths":{"1":28.0,"2":28.0,"3":11.0,"4":8.0},"top":true,"radius":18.63},{"id":"32","rank":9,"x":585.16,"y":360.69,"score":0.5742533081467361,"scoreLabel":"0.5743","strength":73.0,"degree":17,"pagerank":0.03417259124645128,"betweenness":5.382849911526382,"layerCount":4,"participation":0.9367611184087071,"layerStrengths":{"1":28.0,"2":24.0,"3":12.0,"4":9.0},"top":true,"radius":18.29},{"id":"30","rank":10,"x":534.78,"y":316.41,"score":0.5457794438809151,"scoreLabel":"0.5458","strength":66.0,"degree":19,"pagerank":0.030879299568667515,"betweenness":9.180706629971336,"layerCount":4,"participation":0.8674625038261402,"layerStrengths":{"1":20.0,"2":32.0,"3":7.0,"4":7.0},"top":true,"radius":17.95},{"id":"29","rank":11,"x":554.92,"y":343.73,"score":0.5406151536013382,"scoreLabel":"0.5406","strength":60.0,"degree":20,"pagerank":0.02913547767542483,"betweenness":13.444557741511524,"layerCount":4,"participation":0.9148148148148147,"layerStrengths":{"1":18.0,"2":26.0,"3":7.0,"4":9.0},"top":true,"radius":17.89},{"id":"14","rank":12,"x":409.69,"y":290.5,"score":0.5252825601171756,"scoreLabel":"0.5253","strength":57.0,"degree":19,"pagerank":0.02743721704395096,"betweenness":13.205707014740629,"layerCount":4,"participation":0.9307479224376731,"layerStrengths":{"1":16.0,"2":24.0,"3":7.0,"4":10.0},"top":true,"radius":17.71},{"id":"28","rank":13,"x":491.32,"y":288.05,"score":0.5226875109543263,"scoreLabel":"0.5227","strength":52.0,"degree":18,"pagerank":0.026682266639153275,"betweenness":18.449177013462727,"layerCount":4,"participation":0.8984220907297831,"layerStrengths":{"1":18.0,"2":22.0,"3":5.0,"4":7.0},"top":true,"radius":17.67},{"id":"25","rank":14,"x":493.44,"y":374.67,"score":0.522049558499718,"scoreLabel":"0.5220","strength":54.0,"degree":25,"pagerank":0.02628415962972595,"betweenness":23.550208253464557,"layerCount":4,"participation":0.6803840877914952,"layerStrengths":{"1":8.0,"2":36.0,"3":2.0,"4":8.0},"top":true,"radius":17.67},{"id":"7","rank":15,"x":438.94,"y":419.93,"score":0.5207764821132931,"scoreLabel":"0.5208","strength":61.0,"degree":18,"pagerank":0.02869634215410869,"betweenness":7.711908924408925,"layerCount":4,"participation":0.9072829884439667,"layerStrengths":{"1":12.0,"2":28.0,"3":6.0,"4":15.0},"top":true,"radius":17.65},{"id":"5","rank":16,"x":389.36,"y":313.17,"score":0.5092260336316212,"scoreLabel":"0.5092","strength":57.0,"degree":17,"pagerank":0.027218831537818945,"betweenness":11.225370486189814,"layerCount":4,"participation":0.8503129167949114,"layerStrengths":{"1":10.0,"2":28.0,"3":2.0,"4":17.0},"top":true,"radius":17.51},{"id":"21","rank":17,"x":443.56,"y":276.06,"score":0.5088997831569766,"scoreLabel":"0.5089","strength":58.0,"degree":18,"pagerank":0.027623694676259095,"betweenness":11.110508935508935,"layerCount":4,"participation":0.8053904082441538,"layerStrengths":{"1":16.0,"2":32.0,"3":4.0,"4":6.0},"top":true,"radius":17.51},{"id":"36","rank":18,"x":553.32,"y":402.59,"score":0.46969940122164044,"scoreLabel":"0.4697","strength":51.0,"degree":17,"pagerank":0.025124276649784755,"betweenness":8.323966136571178,"layerCount":4,"participation":0.8201973599897476,"layerStrengths":{"1":20.0,"2":24.0,"3":3.0,"4":4.0},"top":true,"radius":17.01},{"id":"33","rank":19,"x":517.74,"y":452.07,"score":0.45324269651263605,"scoreLabel":"0.4532","strength":47.0,"degree":15,"pagerank":0.023954940113920208,"betweenness":7.909744422244422,"layerCount":4,"participation":0.8353704542025049,"layerStrengths":{"1":20.0,"2":20.0,"3":3.0,"4":4.0},"top":true,"radius":16.8},{"id":"9","rank":20,"x":343.61,"y":372.83,"score":0.4380914869312069,"scoreLabel":"0.4381","strength":48.0,"degree":12,"pagerank":0.022820104583837562,"betweenness":1.859024705453277,"layerCount":4,"participation":0.9155092592592592,"layerStrengths":{"1":18.0,"2":18.0,"3":7.0,"4":5.0},"top":true,"radius":16.6},{"id":"35","rank":21,"x":597.94,"y":413.19,"score":0.42274892799605646,"scoreLabel":"0.4227","strength":41.0,"degree":15,"pagerank":0.021204893134551244,"betweenness":7.046133336784598,"layerCount":4,"participation":0.8534602419194922,"layerStrengths":{"1":16.0,"2":18.0,"3":4.0,"4":3.0},"top":false,"radius":16.4},{"id":"2","rank":22,"x":389.01,"y":415.69,"score":0.42049547487414496,"scoreLabel":"0.4205","strength":45.0,"degree":14,"pagerank":0.021811350654034136,"betweenness":2.7498598623598625,"layerCount":4,"participation":0.840164609053498,"layerStrengths":{"1":10.0,"2":24.0,"3":3.0,"4":8.0},"top":false,"radius":16.37},{"id":"31","rank":23,"x":494.86,"y":413.4,"score":0.4200772486851389,"scoreLabel":"0.4201","strength":45.0,"degree":15,"pagerank":0.022293226421634504,"betweenness":3.2395045430759715,"layerCount":4,"participation":0.7980246913580247,"layerStrengths":{"1":20.0,"2":20.0,"3":2.0,"4":3.0},"top":false,"radius":16.36},{"id":"37","rank":24,"x":596.61,"y":290.68,"score":0.4091301271382274,"scoreLabel":"0.4091","strength":39.0,"degree":12,"pagerank":0.01993305504553013,"betweenness":2.638439769847333,"layerCount":4,"participation":0.9818102125794432,"layerStrengths":{"1":12.0,"2":12.0,"3":7.0,"4":8.0},"top":false,"radius":16.21},{"id":"1","rank":25,"x":335.16,"y":295.52,"score":0.40860015803678884,"scoreLabel":"0.4086","strength":43.0,"degree":14,"pagerank":0.02111698349281226,"betweenness":2.298063048063048,"layerCount":4,"participation":0.8249504236524247,"layerStrengths":{"1":8.0,"2":24.0,"3":4.0,"4":7.0},"top":false,"radius":16.21},{"id":"38","rank":26,"x":630.61,"y":309.8,"score":0.3947972665733237,"scoreLabel":"0.3948","strength":39.0,"degree":12,"pagerank":0.020316204720072686,"betweenness":4.492159661067223,"layerCount":4,"participation":0.7609029147490685,"layerStrengths":{"1":18.0,"2":18.0,"3":2.0,"4":1.0},"top":false,"radius":16.02},{"id":"23","rank":27,"x":481.84,"y":215.39,"score":0.39244520586179393,"scoreLabel":"0.3924","strength":35.0,"degree":11,"pagerank":0.01960882384960872,"betweenness":4.507453657453658,"layerCount":4,"participation":0.879455782312925,"layerStrengths":{"1":14.0,"2":14.0,"3":4.0,"4":3.0},"top":false,"radius":15.98},{"id":"15","rank":28,"x":547.13,"y":264.51,"score":0.39205175823200206,"scoreLabel":"0.3921","strength":36.0,"degree":11,"pagerank":0.019283290740323016,"betweenness":3.0036796536796535,"layerCount":4,"participation":0.9135802469135801,"layerStrengths":{"1":10.0,"2":16.0,"3":6.0,"4":4.0},"top":false,"radius":15.98},{"id":"18","rank":29,"x":401.89,"y":214.87,"score":0.3633930906360506,"scoreLabel":"0.3634","strength":36.0,"degree":12,"pagerank":0.019680090762496796,"betweenness":5.296500721500722,"layerCount":3,"participation":0.7818930041152262,"layerStrengths":{"1":14.0,"2":18.0,"3":0.0,"4":4.0},"top":false,"radius":15.57},{"id":"4","rank":30,"x":315.19,"y":327.83,"score":0.3567506000031736,"scoreLabel":"0.3568","strength":32.0,"degree":11,"pagerank":0.017066072796623692,"betweenness":1.6281135531135533,"layerCount":4,"participation":0.8229166666666666,"layerStrengths":{"1":18.0,"2":6.0,"3":4.0,"4":4.0},"top":false,"radius":15.47},{"id":"17","rank":31,"x":371.93,"y":182.69,"score":0.3420812615754342,"scoreLabel":"0.3421","strength":29.0,"degree":8,"pagerank":0.016031862345735618,"betweenness":1.3273559773559778,"layerCount":4,"participation":0.8180737217598097,"layerStrengths":{"1":4.0,"2":16.0,"3":2.0,"4":7.0},"top":false,"radius":15.25},{"id":"39","rank":32,"x":640.17,"y":435.39,"score":0.34030406502719873,"scoreLabel":"0.3403","strength":28.0,"degree":9,"pagerank":0.015464542658036758,"betweenness":0.4213675213675213,"layerCount":4,"participation":0.8843537414965985,"layerStrengths":{"1":10.0,"2":12.0,"3":4.0,"4":2.0},"top":false,"radius":15.23},{"id":"27","rank":33,"x":507.72,"y":152.55,"score":0.3002527257280984,"scoreLabel":"0.3003","strength":22.0,"degree":8,"pagerank":0.014281929252508409,"betweenness":3.8736915978512614,"layerCount":3,"participation":0.837465564738292,"layerStrengths":{"1":10.0,"2":8.0,"3":4.0,"4":0.0},"top":false,"radius":14.61},{"id":"8","rank":34,"x":313.77,"y":223.54,"score":0.3001641150804306,"scoreLabel":"0.3002","strength":25.0,"degree":7,"pagerank":0.014577722665974034,"betweenness":0.8115440115440117,"layerCount":3,"participation":0.8447999999999999,"layerStrengths":{"1":6.0,"2":12.0,"3":0.0,"4":7.0},"top":false,"radius":14.6},{"id":"6","rank":35,"x":440.56,"y":491.42,"score":0.30016131029498616,"scoreLabel":"0.3002","strength":21.0,"degree":9,"pagerank":0.012179547129005796,"betweenness":0.989333682190825,"layerCount":4,"participation":0.8102796674225246,"layerStrengths":{"1":12.0,"2":4.0,"3":3.0,"4":2.0},"top":false,"radius":14.6},{"id":"22","rank":36,"x":599.52,"y":249.68,"score":0.29042265238764525,"scoreLabel":"0.2904","strength":20.0,"degree":10,"pagerank":0.012755443003448616,"betweenness":3.2435037185037183,"layerCount":4,"participation":0.6400000000000001,"layerStrengths":{"1":2.0,"2":14.0,"3":2.0,"4":2.0},"top":false,"radius":14.45},{"id":"20","rank":37,"x":558.94,"y":166.73,"score":0.2884298509957205,"scoreLabel":"0.2884","strength":13.0,"degree":7,"pagerank":0.009793508499713447,"betweenness":2.283272283272283,"layerCount":4,"participation":0.9783037475345167,"layerStrengths":{"1":2.0,"2":4.0,"3":3.0,"4":4.0},"top":false,"radius":14.42},{"id":"10","rank":38,"x":326.49,"y":414.92,"score":0.2504716024555186,"scoreLabel":"0.2505","strength":20.0,"degree":8,"pagerank":0.011918118263798174,"betweenness":0.8083333333333333,"layerCount":3,"participation":0.6133333333333334,"layerStrengths":{"1":2.0,"2":14.0,"3":0.0,"4":4.0},"top":false,"radius":13.77},{"id":"26","rank":39,"x":551.52,"y":449.8,"score":0.22292075300730246,"scoreLabel":"0.2229","strength":24.0,"degree":11,"pagerank":0.013679282662440501,"betweenness":1.6614795918367344,"layerCount":2,"participation":0.37037037037037024,"layerStrengths":{"1":4.0,"2":20.0,"3":0.0,"4":0.0},"top":false,"radius":13.28}],"edgesByLayer":{"Aggregate":[{"source":"11","target":"19","weight":8.0,"layers":4,"bridge":false},{"source":"3","target":"11","weight":8.0,"layers":4,"bridge":false},{"source":"11","target":"12","weight":8.0,"layers":4,"bridge":false},{"source":"7","target":"11","weight":8.0,"layers":4,"bridge":false},{"source":"5","target":"11","weight":8.0,"layers":4,"bridge":false},{"source":"9","target":"11","weight":8.0,"layers":4,"bridge":false},{"source":"3","target":"13","weight":8.0,"layers":4,"bridge":false},{"source":"32","target":"34","weight":8.0,"layers":4,"bridge":false},{"source":"30","target":"34","weight":8.0,"layers":4,"bridge":false},{"source":"3","target":"9","weight":8.0,"layers":4,"bridge":false},{"source":"1","target":"3","weight":8.0,"layers":4,"bridge":false},{"source":"30","target":"32","weight":8.0,"layers":4,"bridge":false},{"source":"34","target":"35","weight":8.0,"layers":4,"bridge":false},{"source":"21","target":"29","weight":8.0,"layers":4,"bridge":false},{"source":"32","target":"37","weight":8.0,"layers":4,"bridge":false},{"source":"33","target":"39","weight":8.0,"layers":4,"bridge":false},{"source":"15","target":"23","weight":8.0,"layers":4,"bridge":false},{"source":"3","target":"16","weight":7.0,"layers":4,"bridge":false},{"source":"16","target":"24","weight":7.0,"layers":4,"bridge":false},{"source":"24","target":"32","weight":7.0,"layers":4,"bridge":false},{"source":"3","target":"19","weight":6.0,"layers":4,"bridge":false},{"source":"19","target":"24","weight":6.0,"layers":4,"bridge":false},{"source":"13","target":"16","weight":6.0,"layers":3,"bridge":false},{"source":"11","target":"13","weight":6.0,"layers":3,"bridge":false},{"source":"12","target":"16","weight":6.0,"layers":3,"bridge":false},{"source":"16","target":"30","weight":6.0,"layers":4,"bridge":false},{"source":"11","target":"14","weight":6.0,"layers":3,"bridge":false},{"source":"7","target":"16","weight":6.0,"layers":3,"bridge":false},{"source":"16","target":"21","weight":6.0,"layers":3,"bridge":false},{"source":"9","target":"16","weight":6.0,"layers":4,"bridge":false},{"source":"24","target":"34","weight":6.0,"layers":3,"bridge":false},{"source":"2","target":"11","weight":6.0,"layers":3,"bridge":false},{"source":"16","target":"37","weight":6.0,"layers":4,"bridge":false},{"source":"1","target":"11","weight":6.0,"layers":3,"bridge":false},{"source":"3","target":"12","weight":6.0,"layers":3,"bridge":false},{"source":"16","target":"17","weight":6.0,"layers":4,"bridge":false},{"source":"3","target":"7","weight":6.0,"layers":3,"bridge":false},{"source":"14","target":"24","weight":6.0,"layers":3,"bridge":false},{"source":"21","target":"24","weight":6.0,"layers":3,"bridge":false},{"source":"5","target":"12","weight":6.0,"layers":3,"bridge":false},{"source":"5","target":"7","weight":6.0,"layers":3,"bridge":false},{"source":"2","target":"12","weight":6.0,"layers":4,"bridge":false},{"source":"32","target":"38","weight":6.0,"layers":3,"bridge":false},{"source":"30","target":"37","weight":6.0,"layers":3,"bridge":false},{"source":"31","target":"36","weight":6.0,"layers":3,"bridge":false},{"source":"8","target":"18","weight":6.0,"layers":3,"bridge":false},{"source":"16","target":"19","weight":5.0,"layers":3,"bridge":false},{"source":"12","target":"19","weight":5.0,"layers":3,"bridge":false},{"source":"16","target":"32","weight":5.0,"layers":3,"bridge":false},{"source":"16","target":"29","weight":5.0,"layers":3,"bridge":false},{"source":"19","target":"29","weight":5.0,"layers":3,"bridge":false},{"source":"14","target":"19","weight":5.0,"layers":3,"bridge":false},{"source":"19","target":"33","weight":5.0,"layers":3,"bridge":false},{"source":"2","target":"16","weight":5.0,"layers":3,"bridge":false},{"source":"15","target":"19","weight":5.0,"layers":3,"bridge":false},{"source":"17","target":"24","weight":5.0,"layers":3,"bridge":false},{"source":"14","target":"28","weight":5.0,"layers":3,"bridge":false},{"source":"22","target":"23","weight":5.0,"layers":3,"bridge":false},{"source":"11","target":"16","weight":4.0,"layers":2,"bridge":false},{"source":"11","target":"24","weight":4.0,"layers":2,"bridge":false},{"source":"11","target":"34","weight":4.0,"layers":2,"bridge":false},{"source":"19","target":"34","weight":4.0,"layers":2,"bridge":false},{"source":"13","target":"19","weight":4.0,"layers":2,"bridge":false},{"source":"19","target":"32","weight":4.0,"layers":2,"bridge":false},{"source":"19","target":"30","weight":4.0,"layers":2,"bridge":false},{"source":"16","target":"25","weight":4.0,"layers":2,"bridge":false},{"source":"19","target":"28","weight":4.0,"layers":3,"bridge":false},{"source":"19","target":"21","weight":4.0,"layers":2,"bridge":false},{"source":"16","target":"31","weight":4.0,"layers":2,"bridge":false},{"source":"4","target":"16","weight":4.0,"layers":2,"bridge":false},{"source":"3","target":"14","weight":4.0,"layers":2,"bridge":false},{"source":"3","target":"5","weight":4.0,"layers":2,"bridge":false},{"source":"8","target":"16","weight":4.0,"layers":2,"bridge":false},{"source":"6","target":"11","weight":4.0,"layers":2,"bridge":false},{"source":"24","target":"28","weight":4.0,"layers":2,"bridge":false},{"source":"10","target":"11","weight":4.0,"layers":2,"bridge":false},{"source":"13","target":"29","weight":4.0,"layers":2,"bridge":false},{"source":"2","target":"3","weight":4.0,"layers":2,"bridge":false},{"source":"5","target":"13","weight":4.0,"layers":2,"bridge":false},{"source":"7","target":"12","weight":4.0,"layers":2,"bridge":false},{"source":"3","target":"15","weight":4.0,"layers":2,"bridge":false},{"source":"34","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"12","target":"21","weight":4.0,"layers":2,"bridge":false},{"source":"33","target":"34","weight":4.0,"layers":2,"bridge":false},{"source":"21","target":"32","weight":4.0,"layers":2,"bridge":false},{"source":"12","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"18","target":"24","weight":4.0,"layers":2,"bridge":false},{"source":"31","target":"34","weight":4.0,"layers":2,"bridge":false},{"source":"34","target":"37","weight":4.0,"layers":2,"bridge":false},{"source":"7","target":"14","weight":4.0,"layers":2,"bridge":false},{"source":"34","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"32","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"3","target":"6","weight":4.0,"layers":2,"bridge":false},{"source":"29","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"29","target":"33","weight":4.0,"layers":2,"bridge":false},{"source":"12","target":"18","weight":4.0,"layers":2,"bridge":false},{"source":"30","target":"31","weight":4.0,"layers":2,"bridge":false},{"source":"7","target":"9","weight":4.0,"layers":2,"bridge":false},{"source":"5","target":"9","weight":4.0,"layers":2,"bridge":false},{"source":"9","target":"21","weight":4.0,"layers":2,"bridge":false},{"source":"28","target":"35","weight":4.0,"layers":2,"bridge":false},{"source":"28","target":"31","weight":4.0,"layers":2,"bridge":false},{"source":"30","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"29","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"15","target":"29","weight":4.0,"layers":2,"bridge":false},{"source":"2","target":"5","weight":4.0,"layers":2,"bridge":false},{"source":"33","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"23","target":"28","weight":4.0,"layers":2,"bridge":false},{"source":"32","target":"39","weight":4.0,"layers":2,"bridge":false},{"source":"35","target":"36","weight":4.0,"layers":2,"bridge":false},{"source":"29","target":"39","weight":4.0,"layers":2,"bridge":false},{"source":"4","target":"28","weight":4.0,"layers":2,"bridge":false},{"source":"31","target":"33","weight":4.0,"layers":2,"bridge":false},{"source":"36","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"5","target":"17","weight":4.0,"layers":2,"bridge":false},{"source":"1","target":"9","weight":4.0,"layers":2,"bridge":false},{"source":"31","target":"35","weight":4.0,"layers":2,"bridge":false},{"source":"27","target":"28","weight":4.0,"layers":2,"bridge":false},{"source":"35","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"37","target":"38","weight":4.0,"layers":2,"bridge":false},{"source":"26","target":"32","weight":4.0,"layers":2,"bridge":false},{"source":"7","target":"10","weight":4.0,"layers":2,"bridge":false},{"source":"17","target":"18","weight":4.0,"layers":2,"bridge":false},{"source":"18","target":"27","weight":4.0,"layers":2,"bridge":false},{"source":"4","target":"8","weight":4.0,"layers":2,"bridge":false},{"source":"8","target":"17","weight":4.0,"layers":2,"bridge":false},{"source":"20","target":"27","weight":4.0,"layers":2,"bridge":false},{"source":"11","target":"30","weight":3.0,"layers":2,"bridge":false},{"source":"19","target":"25","weight":3.0,"layers":2,"bridge":false},{"source":"7","target":"19","weight":3.0,"layers":2,"bridge":false},{"source":"16","target":"36","weight":3.0,"layers":2,"bridge":false},{"source":"12","target":"24","weight":3.0,"layers":2,"bridge":false},{"source":"19","target":"23","weight":3.0,"layers":2,"bridge":false},{"source":"4","target":"11","weight":3.0,"layers":2,"bridge":false},{"source":"3","target":"25","weight":3.0,"layers":2,"bridge":false},{"source":"24","target":"30","weight":3.0,"layers":2,"bridge":false},{"source":"3","target":"21","weight":3.0,"layers":2,"bridge":false},{"source":"25","target":"34","weight":3.0,"layers":2,"bridge":false},{"source":"23","target":"24","weight":3.0,"layers":2,"bridge":false},{"source":"2","target":"34","weight":3.0,"layers":2,"bridge":false},{"source":"25","target":"29","weight":3.0,"layers":2,"bridge":false},{"source":"14","target":"25","weight":3.0,"layers":2,"bridge":false},{"source":"9","target":"12","weight":3.0,"layers":2,"bridge":false},{"source":"8","target":"24","weight":3.0,"layers":2,"bridge":false},{"source":"4","target":"12","weight":3.0,"layers":2,"bridge":false},{"source":"27","target":"34","weight":3.0,"layers":2,"bridge":false},{"source":"14","target":"31","weight":3.0,"layers":2,"bridge":false},{"source":"2","target":"25","weight":3.0,"layers":2,"bridge":false},{"source":"1","target":"14","weight":3.0,"layers":2,"bridge":false},{"source":"1","target":"5","weight":3.0,"layers":2,"bridge":false},{"source":"15","target":"28","weight":3.0,"layers":2,"bridge":false},{"source":"4","target":"14","weight":3.0,"layers":2,"bridge":false},{"source":"1","target":"2","weight":3.0,"layers":2,"bridge":false},{"source":"1","target":"4","weight":3.0,"layers":2,"bridge":false},{"source":"16","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"4","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"8","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"4","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"32","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"36","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"31","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"38","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"22","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"13","target":"14","weight":1.0,"layers":1,"bridge":false},{"source":"12","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"7","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"9","target":"13","weight":1.0,"layers":1,"bridge":false},{"source":"5","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"13","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"36","weight":1.0,"layers":1,"bridge":false},{"source":"29","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"31","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"21","weight":1.0,"layers":1,"bridge":false},{"source":"6","target":"7","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"5","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"22","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"22","target":"27","weight":1.0,"layers":1,"bridge":false}],"1":[{"source":"11","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"15","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"4","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"8","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"6","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"27","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"12","weight":2.0,"layers":1,"bridge":true},{"source":"1","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"27","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"37","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"4","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"4","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"23","weight":2.0,"layers":1,"bridge":true},{"source":"18","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"27","weight":2.0,"layers":1,"bridge":true}],"2":[{"source":"16","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"5","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"30","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"28","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"5","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"31","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"5","weight":2.0,"layers":1,"bridge":false},{"source":"23","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"2","weight":2.0,"layers":1,"bridge":false},{"source":"27","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"36","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"37","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"25","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"35","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"25","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"26","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"17","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"38","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"22","weight":2.0,"layers":1,"bridge":false},{"source":"26","target":"33","weight":2.0,"layers":1,"bridge":false},{"source":"18","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"8","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"22","target":"26","weight":2.0,"layers":1,"bridge":false}],"3":[{"source":"11","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"12","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"11","weight":2.0,"layers":1,"bridge":true},{"source":"9","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"19","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"15","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"6","weight":2.0,"layers":1,"bridge":false},{"source":"29","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"38","weight":2.0,"layers":1,"bridge":true},{"source":"30","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"39","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"27","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"3","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"3","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"12","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"32","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"30","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"36","weight":1.0,"layers":1,"bridge":false},{"source":"9","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"33","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"31","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"23","weight":1.0,"layers":1,"bridge":false},{"source":"15","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"4","target":"11","weight":1.0,"layers":1,"bridge":false},{"source":"24","target":"32","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"17","weight":1.0,"layers":1,"bridge":false},{"source":"3","target":"25","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"34","weight":1.0,"layers":1,"bridge":false},{"source":"12","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"23","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"7","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"9","target":"13","weight":1.0,"layers":1,"bridge":false},{"source":"17","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"9","target":"12","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"12","weight":1.0,"layers":1,"bridge":false},{"source":"29","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"4","target":"12","weight":1.0,"layers":1,"bridge":false},{"source":"27","target":"34","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"31","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"14","weight":1.0,"layers":1,"bridge":false},{"source":"15","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"4","target":"14","weight":1.0,"layers":1,"bridge":false},{"source":"6","target":"7","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"4","weight":1.0,"layers":1,"bridge":false},{"source":"22","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"22","target":"27","weight":1.0,"layers":1,"bridge":false}],"4":[{"source":"11","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"13","target":"19","weight":2.0,"layers":1,"bridge":false},{"source":"11","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"16","weight":2.0,"layers":1,"bridge":false},{"source":"16","target":"21","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"9","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"13","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"24","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"5","weight":2.0,"layers":1,"bridge":false},{"source":"14","target":"24","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"10","target":"11","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"34","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"9","weight":2.0,"layers":1,"bridge":false},{"source":"1","target":"3","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"30","target":"32","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"12","weight":2.0,"layers":1,"bridge":false},{"source":"34","target":"35","weight":2.0,"layers":1,"bridge":false},{"source":"21","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"14","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"7","weight":2.0,"layers":1,"bridge":false},{"source":"32","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"15","target":"29","weight":2.0,"layers":1,"bridge":false},{"source":"2","target":"5","weight":2.0,"layers":1,"bridge":false},{"source":"31","target":"36","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"28","weight":2.0,"layers":1,"bridge":false},{"source":"5","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"33","target":"39","weight":2.0,"layers":1,"bridge":true},{"source":"15","target":"23","weight":2.0,"layers":1,"bridge":false},{"source":"7","target":"10","weight":2.0,"layers":1,"bridge":false},{"source":"6","target":"33","weight":2.0,"layers":1,"bridge":true},{"source":"17","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"20","target":"37","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"18","weight":2.0,"layers":1,"bridge":false},{"source":"4","target":"8","weight":2.0,"layers":1,"bridge":false},{"source":"8","target":"17","weight":2.0,"layers":1,"bridge":false},{"source":"3","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"32","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"30","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"30","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"19","target":"25","weight":1.0,"layers":1,"bridge":false},{"source":"7","target":"19","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"36","weight":1.0,"layers":1,"bridge":false},{"source":"9","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"16","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"38","weight":1.0,"layers":1,"bridge":true},{"source":"12","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"16","target":"17","weight":1.0,"layers":1,"bridge":false},{"source":"24","target":"30","weight":1.0,"layers":1,"bridge":false},{"source":"3","target":"21","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"22","weight":1.0,"layers":1,"bridge":false},{"source":"11","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"13","target":"14","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"34","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"5","target":"29","weight":1.0,"layers":1,"bridge":false},{"source":"14","target":"25","weight":1.0,"layers":1,"bridge":false},{"source":"13","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"12","weight":1.0,"layers":1,"bridge":false},{"source":"8","target":"24","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"36","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"35","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"28","weight":1.0,"layers":1,"bridge":false},{"source":"2","target":"25","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"31","weight":1.0,"layers":1,"bridge":false},{"source":"25","target":"37","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"5","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"21","weight":1.0,"layers":1,"bridge":false},{"source":"1","target":"2","weight":1.0,"layers":1,"bridge":false},{"source":"5","target":"20","weight":1.0,"layers":1,"bridge":false},{"source":"22","target":"23","weight":1.0,"layers":1,"bridge":false}]},"layers":["1","2","3","4"],"layerColors":{"1":"#2563eb","2":"#dc2626","3":"#16a34a","4":"#9333ea"},"layerNodeStats":{"1":{"1":{"influence":0.16666666666666666,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":4,"active":true,"isolated":false},"2":{"influence":0.20833333333333337,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":5,"active":true,"isolated":false},"3":{"influence":0.5416666666666666,"strength":26.0,"outStrength":26.0,"inStrength":26.0,"degree":13,"active":true,"isolated":false},"4":{"influence":0.375,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"5":{"influence":0.20833333333333337,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":5,"active":true,"isolated":false},"6":{"influence":0.25,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false},"7":{"influence":0.25,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false},"8":{"influence":0.125,"strength":6.0,"outStrength":6.0,"inStrength":6.0,"degree":3,"active":true,"isolated":false},"9":{"influence":0.375,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"10":{"influence":0.041666666666666664,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"11":{"influence":0.625,"strength":30.0,"outStrength":30.0,"inStrength":30.0,"degree":15,"active":true,"isolated":false},"12":{"influence":0.5833333333333334,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"13":{"influence":0.41666666666666674,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"14":{"influence":0.3333333333333333,"strength":16.0,"outStrength":16.0,"inStrength":16.0,"degree":8,"active":true,"isolated":false},"15":{"influence":0.20833333333333337,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":5,"active":true,"isolated":false},"16":{"influence":1.0,"strength":48.0,"outStrength":48.0,"inStrength":48.0,"degree":24,"active":true,"isolated":false},"17":{"influence":0.08333333333333333,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"18":{"influence":0.2916666666666667,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":7,"active":true,"isolated":false},"19":{"influence":0.7083333333333334,"strength":34.0,"outStrength":34.0,"inStrength":34.0,"degree":17,"active":true,"isolated":false},"20":{"influence":0.041666666666666664,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"21":{"influence":0.3333333333333333,"strength":16.0,"outStrength":16.0,"inStrength":16.0,"degree":8,"active":true,"isolated":false},"22":{"influence":0.041666666666666664,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"23":{"influence":0.2916666666666667,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":7,"active":true,"isolated":false},"24":{"influence":0.4583333333333333,"strength":22.0,"outStrength":22.0,"inStrength":22.0,"degree":11,"active":true,"isolated":false},"25":{"influence":0.16666666666666666,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":4,"active":true,"isolated":false},"26":{"influence":0.08333333333333333,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"27":{"influence":0.20833333333333337,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":5,"active":true,"isolated":false},"28":{"influence":0.375,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"29":{"influence":0.375,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"30":{"influence":0.41666666666666674,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"31":{"influence":0.41666666666666674,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"32":{"influence":0.5833333333333334,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"33":{"influence":0.41666666666666674,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"34":{"influence":0.5833333333333334,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"35":{"influence":0.3333333333333333,"strength":16.0,"outStrength":16.0,"inStrength":16.0,"degree":8,"active":true,"isolated":false},"36":{"influence":0.41666666666666674,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"37":{"influence":0.25,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false},"38":{"influence":0.375,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"39":{"influence":0.20833333333333337,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":5,"active":true,"isolated":false}},"2":{"1":{"influence":0.48,"strength":24.0,"outStrength":24.0,"inStrength":24.0,"degree":12,"active":true,"isolated":false},"2":{"influence":0.48,"strength":24.0,"outStrength":24.0,"inStrength":24.0,"degree":12,"active":true,"isolated":false},"3":{"influence":0.68,"strength":34.0,"outStrength":34.0,"inStrength":34.0,"degree":17,"active":true,"isolated":false},"4":{"influence":0.12,"strength":6.0,"outStrength":6.0,"inStrength":6.0,"degree":3,"active":true,"isolated":false},"5":{"influence":0.56,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"6":{"influence":0.08,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"7":{"influence":0.56,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"8":{"influence":0.24,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false},"9":{"influence":0.36,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"10":{"influence":0.28,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":7,"active":true,"isolated":false},"11":{"influence":0.76,"strength":38.0,"outStrength":38.0,"inStrength":38.0,"degree":19,"active":true,"isolated":false},"12":{"influence":0.56,"strength":28.0,"outStrength":28.0,"inStrength":28.0,"degree":14,"active":true,"isolated":false},"13":{"influence":0.72,"strength":36.0,"outStrength":36.0,"inStrength":36.0,"degree":18,"active":true,"isolated":false},"14":{"influence":0.48,"strength":24.0,"outStrength":24.0,"inStrength":24.0,"degree":12,"active":true,"isolated":false},"15":{"influence":0.32,"strength":16.0,"outStrength":16.0,"inStrength":16.0,"degree":8,"active":true,"isolated":false},"16":{"influence":0.8800000000000001,"strength":44.0,"outStrength":44.0,"inStrength":44.0,"degree":22,"active":true,"isolated":false},"17":{"influence":0.32,"strength":16.0,"outStrength":16.0,"inStrength":16.0,"degree":8,"active":true,"isolated":false},"18":{"influence":0.36,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"19":{"influence":1.0,"strength":50.0,"outStrength":50.0,"inStrength":50.0,"degree":25,"active":true,"isolated":false},"20":{"influence":0.08,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"21":{"influence":0.64,"strength":32.0,"outStrength":32.0,"inStrength":32.0,"degree":16,"active":true,"isolated":false},"22":{"influence":0.28,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":7,"active":true,"isolated":false},"23":{"influence":0.28,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":7,"active":true,"isolated":false},"24":{"influence":0.8400000000000001,"strength":42.0,"outStrength":42.0,"inStrength":42.0,"degree":21,"active":true,"isolated":false},"25":{"influence":0.72,"strength":36.0,"outStrength":36.0,"inStrength":36.0,"degree":18,"active":true,"isolated":false},"26":{"influence":0.4,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"27":{"influence":0.16,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":4,"active":true,"isolated":false},"28":{"influence":0.44000000000000006,"strength":22.0,"outStrength":22.0,"inStrength":22.0,"degree":11,"active":true,"isolated":false},"29":{"influence":0.52,"strength":26.0,"outStrength":26.0,"inStrength":26.0,"degree":13,"active":true,"isolated":false},"30":{"influence":0.64,"strength":32.0,"outStrength":32.0,"inStrength":32.0,"degree":16,"active":true,"isolated":false},"31":{"influence":0.4,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"32":{"influence":0.48,"strength":24.0,"outStrength":24.0,"inStrength":24.0,"degree":12,"active":true,"isolated":false},"33":{"influence":0.4,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":10,"active":true,"isolated":false},"34":{"influence":0.64,"strength":32.0,"outStrength":32.0,"inStrength":32.0,"degree":16,"active":true,"isolated":false},"35":{"influence":0.36,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"36":{"influence":0.48,"strength":24.0,"outStrength":24.0,"inStrength":24.0,"degree":12,"active":true,"isolated":false},"37":{"influence":0.24,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false},"38":{"influence":0.36,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":9,"active":true,"isolated":false},"39":{"influence":0.24,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":6,"active":true,"isolated":false}},"3":{"1":{"influence":0.21944444444444444,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"2":{"influence":0.15833333333333333,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"3":{"influence":0.8638888888888889,"strength":17.0,"outStrength":17.0,"inStrength":17.0,"degree":10,"active":true,"isolated":false},"4":{"influence":0.2444444444444444,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":4,"active":true,"isolated":false},"5":{"influence":0.09722222222222221,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"6":{"influence":0.15833333333333333,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"7":{"influence":0.31666666666666665,"strength":6.0,"outStrength":6.0,"inStrength":6.0,"degree":4,"active":true,"isolated":false},"8":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"9":{"influence":0.37777777777777777,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":5,"active":true,"isolated":false},"10":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"11":{"influence":0.8388888888888889,"strength":17.0,"outStrength":17.0,"inStrength":17.0,"degree":9,"active":true,"isolated":false},"12":{"influence":0.5972222222222222,"strength":11.0,"outStrength":11.0,"inStrength":11.0,"degree":8,"active":true,"isolated":false},"13":{"influence":0.2555555555555556,"strength":5.0,"outStrength":5.0,"inStrength":5.0,"degree":3,"active":true,"isolated":false},"14":{"influence":0.42777777777777776,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":7,"active":true,"isolated":false},"15":{"influence":0.31666666666666665,"strength":6.0,"outStrength":6.0,"inStrength":6.0,"degree":4,"active":true,"isolated":false},"16":{"influence":1.0,"strength":18.0,"outStrength":18.0,"inStrength":18.0,"degree":14,"active":true,"isolated":false},"17":{"influence":0.1222222222222222,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":2,"active":true,"isolated":false},"18":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"19":{"influence":0.8055555555555556,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":12,"active":true,"isolated":false},"20":{"influence":0.15833333333333333,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"21":{"influence":0.19444444444444442,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"22":{"influence":0.1222222222222222,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":2,"active":true,"isolated":false},"23":{"influence":0.21944444444444444,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"24":{"influence":0.5,"strength":9.0,"outStrength":9.0,"inStrength":9.0,"degree":7,"active":true,"isolated":false},"25":{"influence":0.1222222222222222,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":2,"active":true,"isolated":false},"26":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"27":{"influence":0.21944444444444444,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"28":{"influence":0.28055555555555556,"strength":5.0,"outStrength":5.0,"inStrength":5.0,"degree":4,"active":true,"isolated":false},"29":{"influence":0.37777777777777777,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":5,"active":true,"isolated":false},"30":{"influence":0.35277777777777775,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":4,"active":true,"isolated":false},"31":{"influence":0.1222222222222222,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":2,"active":true,"isolated":false},"32":{"influence":0.6083333333333334,"strength":12.0,"outStrength":12.0,"inStrength":12.0,"degree":7,"active":true,"isolated":false},"33":{"influence":0.15833333333333333,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"34":{"influence":0.41388888888888886,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":5,"active":true,"isolated":false},"35":{"influence":0.21944444444444444,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"36":{"influence":0.15833333333333333,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"37":{"influence":0.35277777777777775,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":4,"active":true,"isolated":false},"38":{"influence":0.09722222222222221,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"39":{"influence":0.19444444444444442,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false}},"4":{"1":{"influence":0.2212121212121212,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":5,"active":true,"isolated":false},"2":{"influence":0.27424242424242423,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":7,"active":true,"isolated":false},"3":{"influence":0.5772727272727273,"strength":20.0,"outStrength":20.0,"inStrength":20.0,"degree":11,"active":true,"isolated":false},"4":{"influence":0.11212121212121212,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"5":{"influence":0.5015151515151515,"strength":17.0,"outStrength":17.0,"inStrength":17.0,"degree":10,"active":true,"isolated":false},"6":{"influence":0.05606060606060606,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false},"7":{"influence":0.4287878787878788,"strength":15.0,"outStrength":15.0,"inStrength":15.0,"degree":8,"active":true,"isolated":false},"8":{"influence":0.20454545454545453,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":4,"active":true,"isolated":false},"9":{"influence":0.1484848484848485,"strength":5.0,"outStrength":5.0,"inStrength":5.0,"degree":3,"active":true,"isolated":false},"10":{"influence":0.11212121212121212,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"11":{"influence":1.0,"strength":33.0,"outStrength":33.0,"inStrength":33.0,"degree":21,"active":true,"isolated":false},"12":{"influence":0.2409090909090909,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":5,"active":true,"isolated":false},"13":{"influence":0.2409090909090909,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":5,"active":true,"isolated":false},"14":{"influence":0.296969696969697,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":6,"active":true,"isolated":false},"15":{"influence":0.11212121212121212,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"16":{"influence":0.4424242424242424,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":10,"active":true,"isolated":false},"17":{"influence":0.20454545454545453,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":4,"active":true,"isolated":false},"18":{"influence":0.11212121212121212,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"19":{"influence":0.3303030303030303,"strength":10.0,"outStrength":10.0,"inStrength":10.0,"degree":8,"active":true,"isolated":false},"20":{"influence":0.12878787878787878,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"21":{"influence":0.18484848484848485,"strength":6.0,"outStrength":6.0,"inStrength":6.0,"degree":4,"active":true,"isolated":false},"22":{"influence":0.07272727272727272,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":2,"active":true,"isolated":false},"23":{"influence":0.09242424242424242,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"24":{"influence":0.4257575757575758,"strength":14.0,"outStrength":14.0,"inStrength":14.0,"degree":9,"active":true,"isolated":false},"25":{"influence":0.2909090909090909,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":8,"active":true,"isolated":false},"26":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"27":{"influence":0.0,"strength":0,"outStrength":0,"inStrength":0,"degree":0,"active":false,"isolated":true},"28":{"influence":0.2212121212121212,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":5,"active":true,"isolated":false},"29":{"influence":0.29393939393939394,"strength":9.0,"outStrength":9.0,"inStrength":9.0,"degree":7,"active":true,"isolated":false},"30":{"influence":0.2212121212121212,"strength":7.0,"outStrength":7.0,"inStrength":7.0,"degree":5,"active":true,"isolated":false},"31":{"influence":0.09242424242424242,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"32":{"influence":0.2606060606060606,"strength":9.0,"outStrength":9.0,"inStrength":9.0,"degree":5,"active":true,"isolated":false},"33":{"influence":0.11212121212121212,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":2,"active":true,"isolated":false},"34":{"influence":0.3727272727272727,"strength":13.0,"outStrength":13.0,"inStrength":13.0,"degree":7,"active":true,"isolated":false},"35":{"influence":0.09242424242424242,"strength":3.0,"outStrength":3.0,"inStrength":3.0,"degree":2,"active":true,"isolated":false},"36":{"influence":0.12878787878787878,"strength":4.0,"outStrength":4.0,"inStrength":4.0,"degree":3,"active":true,"isolated":false},"37":{"influence":0.25757575757575757,"strength":8.0,"outStrength":8.0,"inStrength":8.0,"degree":6,"active":true,"isolated":false},"38":{"influence":0.03636363636363636,"strength":1.0,"outStrength":1.0,"inStrength":1.0,"degree":1,"active":true,"isolated":false},"39":{"influence":0.05606060606060606,"strength":2.0,"outStrength":2.0,"inStrength":2.0,"degree":1,"active":true,"isolated":false}}},"layerPositions":{"1":{"1":{"x":0.71968,"y":0.91005},"2":{"x":0.61282,"y":0.91655},"3":{"x":0.57452,"y":0.76897},"4":{"x":0.61295,"y":0.79941},"5":{"x":0.801,"y":0.66038},"6":{"x":0.67492,"y":0.75699},"7":{"x":0.72714,"y":0.60353},"8":{"x":0.40743,"y":0.87959},"9":{"x":0.65813,"y":0.61664},"10":{"x":0.84217,"y":0.95161},"11":{"x":0.64702,"y":0.66855},"12":{"x":0.60641,"y":0.65418},"13":{"x":0.66662,"y":0.53338},"14":{"x":0.47732,"y":0.65179},"15":{"x":0.37532,"y":0.67366},"16":{"x":0.53975,"y":0.57233},"17":{"x":0.2879,"y":0.74353},"18":{"x":0.36207,"y":0.57597},"19":{"x":0.50085,"y":0.56684},"20":{"x":0.03,"y":0.055},"21":{"x":0.47132,"y":0.5132},"22":{"x":0.03,"y":0.56543},"23":{"x":0.25921,"y":0.50682},"24":{"x":0.38557,"y":0.50591},"25":{"x":0.73915,"y":0.39883},"26":{"x":0.47075,"y":0.81122},"27":{"x":0.22743,"y":0.28342},"28":{"x":0.37745,"y":0.37076},"29":{"x":0.6333,"y":0.3471},"30":{"x":0.44892,"y":0.29478},"31":{"x":0.48978,"y":0.41398},"32":{"x":0.54642,"y":0.41308},"33":{"x":0.58634,"y":0.33419},"34":{"x":0.48229,"y":0.33685},"35":{"x":0.54897,"y":0.22449},"36":{"x":0.58889,"y":0.25444},"37":{"x":0.47883,"y":0.15431},"38":{"x":0.4975,"y":0.22569},"39":{"x":0.58096,"y":0.11196}},"2":{"1":{"x":0.51946,"y":0.68367},"2":{"x":0.54898,"y":0.51152},"3":{"x":0.43363,"y":0.56955},"4":{"x":0.32004,"y":0.86132},"5":{"x":0.43888,"y":0.63371},"6":{"x":0.64915,"y":0.08414},"7":{"x":0.3789,"y":0.59318},"8":{"x":0.45052,"y":0.85243},"9":{"x":0.50098,"y":0.75442},"10":{"x":0.2781,"y":0.53673},"11":{"x":0.45787,"y":0.47217},"12":{"x":0.47585,"y":0.63691},"13":{"x":0.38141,"y":0.43351},"14":{"x":0.50531,"y":0.5833},"15":{"x":0.32949,"y":0.21722},"16":{"x":0.48471,"y":0.51661},"17":{"x":0.42964,"y":0.76411},"18":{"x":0.38087,"y":0.72479},"19":{"x":0.41658,"y":0.46327},"20":{"x":0.806,"y":0.51733},"21":{"x":0.39764,"y":0.51057},"22":{"x":0.25692,"y":0.26541},"23":{"x":0.24697,"y":0.35629},"24":{"x":0.55164,"y":0.58243},"25":{"x":0.43552,"y":0.41086},"26":{"x":0.3679,"y":0.33016},"27":{"x":0.2316,"y":0.66851},"28":{"x":0.33478,"y":0.51473},"29":{"x":0.41436,"y":0.2642},"30":{"x":0.53377,"y":0.43828},"31":{"x":0.46081,"y":0.27517},"32":{"x":0.5601,"y":0.36099},"33":{"x":0.41542,"y":0.18566},"34":{"x":0.51906,"y":0.36031},"35":{"x":0.54836,"y":0.2099},"36":{"x":0.52094,"y":0.2829},"37":{"x":0.67614,"y":0.45725},"38":{"x":0.65089,"y":0.32963},"39":{"x":0.46031,"y":0.09165}},"3":{"1":{"x":0.50635,"y":0.95161},"2":{"x":0.81455,"y":0.95161},"3":{"x":0.6042,"y":0.73412},"4":{"x":0.5833,"y":0.95161},"5":{"x":0.95235,"y":0.95161},"6":{"x":0.85203,"y":0.66994},"7":{"x":0.69565,"y":0.48742},"9":{"x":0.74213,"y":0.70233},"11":{"x":0.70744,"y":0.79715},"12":{"x":0.63637,"y":0.67482},"13":{"x":0.75699,"y":0.57415},"14":{"x":0.35747,"y":0.78457},"15":{"x":0.42475,"y":0.95161},"16":{"x":0.55223,"y":0.50584},"17":{"x":0.28097,"y":0.53054},"19":{"x":0.48017,"y":0.69944},"20":{"x":0.06436,"y":0.57929},"21":{"x":0.26836,"y":0.29978},"22":{"x":0.03,"y":0.04839},"23":{"x":0.28396,"y":0.83686},"24":{"x":0.36959,"y":0.55662},"25":{"x":0.39375,"y":0.39668},"27":{"x":0.03128,"y":0.24292},"28":{"x":0.34122,"y":0.90564},"29":{"x":0.45678,"y":0.26922},"30":{"x":0.44037,"y":0.11832},"31":{"x":0.24314,"y":0.95161},"32":{"x":0.53231,"y":0.17184},"33":{"x":0.68469,"y":0.30144},"34":{"x":0.29043,"y":0.10294},"35":{"x":0.19569,"y":0.04839},"36":{"x":0.56867,"y":0.06562},"37":{"x":0.51243,"y":0.34906},"38":{"x":0.7716,"y":0.04839},"39":{"x":0.69633,"y":0.04839}},"4":{"1":{"x":0.4208,"y":0.92755},"2":{"x":0.43935,"y":0.68494},"3":{"x":0.42394,"y":0.77144},"4":{"x":0.0885,"y":0.95161},"5":{"x":0.34563,"y":0.75804},"6":{"x":0.97,"y":0.17753},"7":{"x":0.53926,"y":0.70026},"8":{"x":0.0705,"y":0.77958},"9":{"x":0.3678,"y":0.95161},"10":{"x":0.67836,"y":0.75202},"11":{"x":0.4459,"y":0.60268},"12":{"x":0.49373,"y":0.83215},"13":{"x":0.53818,"y":0.51084},"14":{"x":0.55578,"y":0.59085},"15":{"x":0.04211,"y":0.22415},"16":{"x":0.28742,"y":0.67339},"17":{"x":0.14765,"y":0.90281},"18":{"x":0.03,"y":0.95161},"19":{"x":0.42727,"y":0.54296},"20":{"x":0.23007,"y":0.53788},"21":{"x":0.24198,"y":0.7979},"22":{"x":0.20243,"y":0.18534},"23":{"x":0.03,"y":0.04839},"24":{"x":0.35033,"y":0.55658},"25":{"x":0.52658,"y":0.30978},"28":{"x":0.30299,"y":0.86056},"29":{"x":0.26768,"y":0.46493},"30":{"x":0.32403,"y":0.35225},"31":{"x":0.70726,"y":0.04839},"32":{"x":0.38941,"y":0.2642},"33":{"x":0.97,"y":0.04839},"34":{"x":0.4726,"y":0.37935},"35":{"x":0.55257,"y":0.04839},"36":{"x":0.65799,"y":0.26475},"37":{"x":0.38304,"y":0.40066},"38":{"x":0.6786,"y":0.95161},"39":{"x":0.97,"y":0.04839}}},"layerProfile":[{"node":"16","rank":1,"score":0.9403096393811254,"total":124.0,"layers":{"1":48.0,"2":44.0,"3":18.0,"4":14.0}},{"node":"11","rank":2,"score":0.9385607562514249,"total":118.0,"layers":{"1":30.0,"2":38.0,"3":17.0,"4":33.0}},{"node":"19","rank":3,"score":0.9173360462639462,"total":108.0,"layers":{"1":34.0,"2":50.0,"3":14.0,"4":10.0}},{"node":"3","rank":4,"score":0.7323018362220267,"total":97.0,"layers":{"1":26.0,"2":34.0,"3":17.0,"4":20.0}},{"node":"24","rank":5,"score":0.7085348413319292,"total":87.0,"layers":{"1":22.0,"2":42.0,"3":9.0,"4":14.0}},{"node":"34","rank":6,"score":0.6505498505344397,"total":81.0,"layers":{"1":28.0,"2":32.0,"3":8.0,"4":13.0}},{"node":"13","rank":7,"score":0.6228349141835181,"total":69.0,"layers":{"1":20.0,"2":36.0,"3":5.0,"4":8.0}},{"node":"12","rank":8,"score":0.6040534265200311,"total":75.0,"layers":{"1":28.0,"2":28.0,"3":11.0,"4":8.0}},{"node":"32","rank":9,"score":0.5742533081467361,"total":73.0,"layers":{"1":28.0,"2":24.0,"3":12.0,"4":9.0}},{"node":"30","rank":10,"score":0.5457794438809151,"total":66.0,"layers":{"1":20.0,"2":32.0,"3":7.0,"4":7.0}},{"node":"29","rank":11,"score":0.5406151536013382,"total":60.0,"layers":{"1":18.0,"2":26.0,"3":7.0,"4":9.0}},{"node":"14","rank":12,"score":0.5252825601171756,"total":57.0,"layers":{"1":16.0,"2":24.0,"3":7.0,"4":10.0}},{"node":"28","rank":13,"score":0.5226875109543263,"total":52.0,"layers":{"1":18.0,"2":22.0,"3":5.0,"4":7.0}},{"node":"25","rank":14,"score":0.522049558499718,"total":54.0,"layers":{"1":8.0,"2":36.0,"3":2.0,"4":8.0}},{"node":"7","rank":15,"score":0.5207764821132931,"total":61.0,"layers":{"1":12.0,"2":28.0,"3":6.0,"4":15.0}},{"node":"5","rank":16,"score":0.5092260336316212,"total":57.0,"layers":{"1":10.0,"2":28.0,"3":2.0,"4":17.0}},{"node":"21","rank":17,"score":0.5088997831569766,"total":58.0,"layers":{"1":16.0,"2":32.0,"3":4.0,"4":6.0}},{"node":"36","rank":18,"score":0.46969940122164044,"total":51.0,"layers":{"1":20.0,"2":24.0,"3":3.0,"4":4.0}},{"node":"33","rank":19,"score":0.45324269651263605,"total":47.0,"layers":{"1":20.0,"2":20.0,"3":3.0,"4":4.0}},{"node":"9","rank":20,"score":0.4380914869312069,"total":48.0,"layers":{"1":18.0,"2":18.0,"3":7.0,"4":5.0}}]};
+    const WIDTH = 1060;
+    const HEIGHT = 650;
+    const svg = document.getElementById("networkSvg");
+    const modeSelect = document.getElementById("modeSelect");
+    const layerSelect = document.getElementById("layerSelect");
+    const influenceScope = document.getElementById("influenceScope");
+    const layerChecks = document.getElementById("layerChecks");
+    const intraToggle = document.getElementById("intraToggle");
+    const interToggle = document.getElementById("interToggle");
+    const bridgeToggle = document.getElementById("bridgeToggle");
+    const bridgeOnlyToggle = document.getElementById("bridgeOnlyToggle");
+    const isolatedToggle = document.getElementById("isolatedToggle");
+    const labelToggle = document.getElementById("labelToggle");
+    const tooltip = document.getElementById("tooltip");
+    const legend = document.getElementById("legend");
+    const viewStatus = document.getElementById("viewStatus");
+    const focusMetrics = document.getElementById("focusMetrics");
+    const nodeById = new Map(DATA.nodes.map(node => [node.id, node]));
+    let previousControlKey = "";
+
+    function escapeText(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function clamp(value, low, high) {
+      return Math.max(low, Math.min(high, value));
+    }
+
+    function edgeWidth(edge) {
+      return Math.max(0.8, Math.min(5, 0.7 + Math.log1p(edge.weight || 1)));
+    }
+
+    function layerColor(layer) {
+      return DATA.layerColors[layer] || "#0f766e";
+    }
+
+    function influenceFill(layer, influence) {
+      const percent = Math.round(28 + clamp(influence || 0, 0, 1) * 72);
+      return `color-mix(in srgb, ${layerColor(layer)} ${percent}%, var(--panel))`;
+    }
+
+    function dominantLayer(node) {
+      let bestLayer = DATA.layers[0] || "Aggregate";
+      let bestValue = -1;
+      for (const layer of DATA.layers) {
+        const value = node.layerStrengths?.[layer] || 0;
+        if (value > bestValue) {
+          bestLayer = layer;
+          bestValue = value;
+        }
+      }
+      return bestLayer;
+    }
+
+    function selectedLayers() {
+      const checked = [...layerChecks.querySelectorAll("input[type='checkbox']:checked")].map(input => input.value);
+      return checked.length ? checked : DATA.layers.slice(0, Math.min(3, DATA.layers.length));
+    }
+
+    function panelLayout(layers) {
+      const count = Math.max(1, layers.length);
+      const cols = count === 1 ? 1 : count <= 4 ? 2 : 3;
+      const rows = Math.ceil(count / cols);
+      const gap = 18;
+      const panelWidth = (WIDTH - gap * (cols + 1)) / cols;
+      const panelHeight = (HEIGHT - gap * (rows + 1)) / rows;
+      const panels = {};
+      layers.forEach((layer, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        panels[layer] = {
+          x: gap + col * (panelWidth + gap),
+          y: gap + row * (panelHeight + gap),
+          width: panelWidth,
+          height: panelHeight
+        };
+      });
+      return panels;
+    }
+
+    function mapLayerPosition(base, layer, panels) {
+      const panel = panels[layer] || { x: 30, y: 30, width: WIDTH - 60, height: HEIGHT - 60 };
+      const local = DATA.layerPositions[layer]?.[base.id];
+      const padding = Math.min(34, Math.max(18, Math.min(panel.width, panel.height) * 0.12));
+      const xRatio = local ? local.x : base.x / WIDTH;
+      const yRatio = local ? local.y : base.y / HEIGHT;
+      return {
+        x: panel.x + padding + clamp(xRatio, 0, 1) * Math.max(1, panel.width - padding * 2),
+        y: panel.y + padding + clamp(yRatio, 0, 1) * Math.max(1, panel.height - padding * 2)
+      };
+    }
+
+    function layerCopy(base, layer, panels, influenceMode) {
+      const stats = DATA.layerNodeStats[layer]?.[base.id] || {};
+      const influence = influenceMode ? (stats.influence || 0) : Math.max(0.15, stats.influence || 0);
+      const position = mapLayerPosition(base, layer, panels);
+      return {
+        ...base,
+        copyId: `${base.id}@@${layer}`,
+        baseId: base.id,
+        layer,
+        x: position.x,
+        y: position.y,
+        layerInfluence: stats.influence || 0,
+        layerStrength: stats.strength || 0,
+        layerDegree: stats.degree || 0,
+        active: Boolean(stats.active),
+        isolated: Boolean(stats.isolated),
+        radius: Math.max(4.5, Math.min(14, 4.5 + 9.5 * Math.sqrt(influence)))
+      };
+    }
+
+    function singleLayerNode(base, layer, influenceMode) {
+      const stats = DATA.layerNodeStats[layer]?.[base.id] || {};
+      const position = mapLayerPosition(base, layer, panelLayout([layer]));
+      return {
+        ...base,
+        copyId: base.id,
+        baseId: base.id,
+        layer,
+        x: position.x,
+        y: position.y,
+        layerInfluence: stats.influence || 0,
+        layerStrength: stats.strength || 0,
+        layerDegree: stats.degree || 0,
+        active: Boolean(stats.active),
+        isolated: Boolean(stats.isolated),
+        radius: influenceMode
+          ? Math.max(5, Math.min(20, 5 + 15 * Math.sqrt(stats.influence || 0)))
+          : base.radius
+      };
+    }
+
+    function aggregateNode(base, influenceMode) {
+      const layer = dominantLayer(base);
+      return {
+        ...base,
+        copyId: base.id,
+        baseId: base.id,
+        layer,
+        layerInfluence: base.score,
+        layerStrength: base.strength,
+        layerDegree: base.degree,
+        active: true,
+        isolated: base.degree === 0,
+        radius: influenceMode ? Math.max(5, Math.min(22, 5 + 17 * Math.sqrt(base.score || 0))) : base.radius
+      };
+    }
+
+    function edgeKey(source, target) {
+      return [source, target].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true })).join("--");
+    }
+
+    function buildView() {
+      const mode = modeSelect.value;
+      const selectedLayer = layerSelect.value || DATA.layers[0];
+      const influenceMode = mode === "influence";
+      const influenceAsLayer = influenceMode && influenceScope.value === "layer";
+      const multilayerMode = mode === "multi" || (influenceMode && !influenceAsLayer);
+      const aggregateMode = mode === "aggregate";
+      const singleMode = mode === "single" || influenceAsLayer;
+      const layers = multilayerMode ? selectedLayers() : [selectedLayer];
+      const panels = panelLayout(layers);
+      const nodeMap = new Map();
+      const edges = [];
+
+      if (aggregateMode) {
+        const rawEdges = intraToggle.checked ? (DATA.edgesByLayer.Aggregate || []) : [];
+        for (const edge of rawEdges) {
+          if (bridgeOnlyToggle.checked && !edge.bridge) continue;
+          edges.push({ ...edge, copySource: edge.source, copyTarget: edge.target, layer: "Aggregate", type: "intra" });
+        }
+        const connected = new Set();
+        edges.forEach(edge => {
+          connected.add(edge.source);
+          connected.add(edge.target);
+        });
+        DATA.nodes.forEach(base => {
+          const node = aggregateNode(base, influenceMode);
+          if (isolatedToggle.checked || connected.has(base.id)) nodeMap.set(node.copyId, node);
+        });
+      } else if (singleMode) {
+        const rawEdges = intraToggle.checked ? (DATA.edgesByLayer[selectedLayer] || []) : [];
+        for (const edge of rawEdges) {
+          if (bridgeOnlyToggle.checked && !edge.bridge) continue;
+          edges.push({ ...edge, copySource: edge.source, copyTarget: edge.target, layer: selectedLayer, type: "intra" });
+        }
+        const connected = new Set();
+        edges.forEach(edge => {
+          connected.add(edge.source);
+          connected.add(edge.target);
+        });
+        DATA.nodes.forEach(base => {
+          const node = singleLayerNode(base, selectedLayer, influenceMode);
+          if (isolatedToggle.checked || node.active || connected.has(base.id)) {
+            if (!bridgeOnlyToggle.checked || connected.has(base.id) || isolatedToggle.checked) {
+              nodeMap.set(node.copyId, node);
+            }
+          }
+        });
+      } else {
+        for (const layer of layers) {
+          const rawEdges = intraToggle.checked ? (DATA.edgesByLayer[layer] || []) : [];
+          for (const edge of rawEdges) {
+            if (bridgeOnlyToggle.checked && !edge.bridge) continue;
+            edges.push({
+              ...edge,
+              copySource: `${edge.source}@@${layer}`,
+              copyTarget: `${edge.target}@@${layer}`,
+              layer,
+              type: "intra"
+            });
+          }
+        }
+        const connectedCopies = new Set();
+        edges.forEach(edge => {
+          connectedCopies.add(edge.copySource);
+          connectedCopies.add(edge.copyTarget);
+        });
+        DATA.nodes.forEach(base => {
+          for (const layer of layers) {
+            const node = layerCopy(base, layer, panels, influenceMode);
+            if (isolatedToggle.checked || node.active || connectedCopies.has(node.copyId)) {
+              if (!bridgeOnlyToggle.checked || connectedCopies.has(node.copyId) || isolatedToggle.checked) {
+                nodeMap.set(node.copyId, node);
+              }
+            }
+          }
+        });
+        if (interToggle.checked && !bridgeOnlyToggle.checked) {
+          DATA.nodes.forEach(base => {
+            const activeLayers = layers.filter(layer => {
+              const node = nodeMap.get(`${base.id}@@${layer}`);
+              return node && node.active;
+            });
+            for (let i = 0; i < activeLayers.length - 1; i += 1) {
+              edges.push({
+                source: base.id,
+                target: base.id,
+                copySource: `${base.id}@@${activeLayers[i]}`,
+                copyTarget: `${base.id}@@${activeLayers[i + 1]}`,
+                weight: 1,
+                layer: activeLayers[i],
+                type: "inter",
+                bridge: false
+              });
+            }
+          });
+        }
+      }
+
+      const visibleEdges = edges.filter(edge => nodeMap.has(edge.copySource) && nodeMap.has(edge.copyTarget));
+      return { nodes: [...nodeMap.values()], edges: visibleEdges, layers, panels, multilayerMode, aggregateMode, influenceMode };
+    }
+
+    function clearSvg() {
+      while (svg.lastChild && svg.lastChild.nodeName !== "defs") {
+        svg.removeChild(svg.lastChild);
+      }
+    }
+
+    function lineTrim(source, target) {
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      const trim = DATA.directed ? Math.max(6, target.radius + 4) : 0;
+      return [target.x - (dx / distance) * trim, target.y - (dy / distance) * trim];
+    }
+
+    function nodeFill(node, view) {
+      if (node.isolated && !node.active && !view.aggregateMode) return "var(--panel)";
+      if (view.influenceMode) return influenceFill(node.layer, node.layerInfluence || node.score || 0);
+      if (view.aggregateMode) return influenceFill(node.layer, node.score || 0.2);
+      return layerColor(node.layer);
+    }
+
+    function nodeStroke(node) {
+      if (node.isolated && !node.active) return layerColor(node.layer);
+      return "var(--panel)";
+    }
+
+    function tooltipPosition(event, node) {
+      if (Number.isFinite(event.clientX) && Number.isFinite(event.clientY) && event.clientX > 0 && event.clientY > 0) {
+        return [event.clientX + 12, event.clientY + 12];
+      }
+      const rect = svg.getBoundingClientRect();
+      return [
+        rect.left + (node.x / WIDTH) * rect.width + 12,
+        rect.top + (node.y / HEIGHT) * rect.height + 12
+      ];
+    }
+
+    function showTooltip(event, node) {
+      const [left, top] = tooltipPosition(event, node);
+      const layerLine = node.layer ? `<br>Layer: ${escapeText(node.layer)}` : "";
+      tooltip.innerHTML = `
+        <strong>Node ${escapeText(node.baseId || node.id)}</strong>${layerLine}<br>
+        Aggregate rank: ${node.rank}<br>
+        Aggregate influence: ${node.scoreLabel}<br>
+        Aggregate degree: ${node.degree.toLocaleString()}<br>
+        PageRank: ${node.pagerank.toExponential(3)}<br>
+        Betweenness: ${Number(node.betweenness).toLocaleString()}<br>
+        Layer influence: ${(node.layerInfluence || 0).toFixed(4)}<br>
+        Layer degree: ${(node.layerDegree || 0).toLocaleString()}<br>
+        Layer strength: ${(node.layerStrength || 0).toLocaleString()}<br>
+        Status: ${node.active ? "active" : "isolated/inactive"}
+      `;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      tooltip.style.display = "block";
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = "none";
+    }
+
+    function renderGuides(view) {
+      if (!view.multilayerMode) return;
+      const guideGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      view.layers.forEach(layer => {
+        const panel = view.panels[layer];
+        if (!panel) return;
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", panel.x);
+        rect.setAttribute("y", panel.y);
+        rect.setAttribute("width", panel.width);
+        rect.setAttribute("height", panel.height);
+        rect.setAttribute("class", "layer-panel");
+        guideGroup.appendChild(rect);
+
+        const title = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        title.setAttribute("x", panel.x + 12);
+        title.setAttribute("y", panel.y + 20);
+        title.setAttribute("class", "layer-title");
+        title.textContent = `Layer ${layer}`;
+        guideGroup.appendChild(title);
+      });
+      svg.appendChild(guideGroup);
+    }
+
+    function render() {
+      const view = buildView();
+      const nodeMap = new Map(view.nodes.map(node => [node.copyId, node]));
+      clearSvg();
+      renderGuides(view);
+
+      const edgeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      edgeGroup.setAttribute("aria-hidden", "true");
+      view.edges.forEach(edge => {
+        const source = nodeMap.get(edge.copySource);
+        const target = nodeMap.get(edge.copyTarget);
+        if (!source || !target) return;
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        const [x2, y2] = lineTrim(source, target);
+        line.setAttribute("x1", source.x);
+        line.setAttribute("y1", source.y);
+        line.setAttribute("x2", x2);
+        line.setAttribute("y2", y2);
+        line.setAttribute("class", `edge ${edge.type === "inter" ? "inter" : "intra"} ${edge.bridge && bridgeToggle.checked ? "bridge" : ""}`);
+        line.setAttribute("stroke", edge.type === "intra" ? layerColor(edge.layer) : "var(--inter)");
+        line.setAttribute("stroke-width", edge.type === "inter" ? 1.2 : edgeWidth(edge));
+        if (DATA.directed && edge.type === "intra") line.setAttribute("marker-end", "url(#arrow)");
+        edgeGroup.appendChild(line);
+      });
+      svg.appendChild(edgeGroup);
+
+      const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      view.nodes.forEach(node => {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", node.x);
+        circle.setAttribute("cy", node.y);
+        circle.setAttribute("r", node.radius);
+        circle.setAttribute("fill", nodeFill(node, view));
+        circle.setAttribute("stroke", nodeStroke(node));
+        circle.setAttribute("class", `node${node.top ? " top" : ""}${node.isolated && !node.active ? " isolated" : ""}`);
+        circle.setAttribute("tabindex", "0");
+        circle.setAttribute("aria-label", `Node ${node.baseId || node.id}, layer ${node.layer}, influence ${node.scoreLabel}`);
+        circle.addEventListener("mousemove", event => showTooltip(event, node));
+        circle.addEventListener("mouseleave", hideTooltip);
+        circle.addEventListener("focus", event => showTooltip(event, node));
+        circle.addEventListener("blur", hideTooltip);
+        nodeGroup.appendChild(circle);
+
+        if (labelToggle.checked && (node.top || view.influenceMode || view.nodes.length <= 45)) {
+          const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          label.setAttribute("x", node.x + node.radius + 4);
+          label.setAttribute("y", node.y + 4);
+          label.setAttribute("class", "node-label");
+          label.textContent = node.baseId || node.id;
+          nodeGroup.appendChild(label);
+        }
+      });
+      svg.appendChild(nodeGroup);
+      renderLegend(view);
+      renderFocus(view);
+      viewStatus.textContent = `${view.nodes.length.toLocaleString()} visible nodes and ${view.edges.length.toLocaleString()} visible edges.`;
+    }
+
+    function renderLegend(view) {
+      legend.innerHTML = "";
+      const layers = view.aggregateMode ? DATA.layers : view.layers;
+      layers.forEach(layer => {
+        const item = document.createElement("span");
+        item.className = "pill";
+        item.innerHTML = `<span class="swatch" style="background:${layerColor(layer)}"></span> Layer ${escapeText(layer)}`;
+        legend.appendChild(item);
+      });
+      if (bridgeToggle.checked || bridgeOnlyToggle.checked) {
+        const bridge = document.createElement("span");
+        bridge.className = "pill";
+        bridge.textContent = bridgeOnlyToggle.checked ? "Showing only bridge edges" : "Bridge edges are dark";
+        legend.appendChild(bridge);
+      }
+      if (view.multilayerMode && interToggle.checked) {
+        const inter = document.createElement("span");
+        inter.className = "pill";
+        inter.textContent = "Dashed edges connect the same node across layers";
+        legend.appendChild(inter);
+      }
+    }
+
+    function currentInfluenceRows(view) {
+      if (view.aggregateMode) {
+        return DATA.nodes
+          .map(node => ({ node: node.id, layer: "All", score: node.score, degree: node.degree, strength: node.strength }))
+          .sort((a, b) => b.score - a.score);
+      }
+      const layers = view.multilayerMode ? view.layers : [layerSelect.value || DATA.layers[0]];
+      const byNode = new Map();
+      DATA.nodes.forEach(node => {
+        const entries = layers.map(layer => DATA.layerNodeStats[layer]?.[node.id]).filter(Boolean);
+        if (!entries.length) return;
+        const score = entries.reduce((total, row) => total + (row.influence || 0), 0) / entries.length;
+        const degree = entries.reduce((total, row) => total + (row.degree || 0), 0);
+        const strength = entries.reduce((total, row) => total + (row.strength || 0), 0);
+        byNode.set(node.id, { node: node.id, layer: layers.length === 1 ? layers[0] : `${layers.length} layers`, score, degree, strength });
+      });
+      return [...byNode.values()].sort((a, b) => b.score - a.score || b.degree - a.degree);
+    }
+
+    function renderFocus(view) {
+      focusMetrics.innerHTML = "";
+      currentInfluenceRows(view).slice(0, 8).forEach(row => {
+        const item = document.createElement("div");
+        item.className = "metric";
+        item.innerHTML = `
+          <strong>${escapeText(row.node)}</strong>
+          Score ${Number(row.score || 0).toFixed(4)}<br>
+          Degree ${Number(row.degree || 0).toLocaleString()}<br>
+          Strength ${Number(row.strength || 0).toLocaleString()}<br>
+          ${escapeText(row.layer)}
+        `;
+        focusMetrics.appendChild(item);
+      });
+    }
+
+    function renderProfile() {
+      const root = document.getElementById("profile");
+      root.innerHTML = "";
+      DATA.layerProfile.forEach(row => {
+        const item = document.createElement("div");
+        item.className = "profile-row";
+        const label = document.createElement("div");
+        label.className = "profile-label";
+        label.textContent = `#${row.rank} node ${row.node}`;
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        DATA.layers.forEach(layer => {
+          const value = row.layers[layer] || 0;
+          const segment = document.createElement("div");
+          segment.className = "segment";
+          segment.style.width = `${value > 0 && row.total > 0 ? Math.max(2, (value / row.total) * 100) : 0}%`;
+          segment.style.background = layerColor(layer);
+          segment.title = `Layer ${layer}: ${value.toLocaleString()}`;
+          bar.appendChild(segment);
+        });
+        item.appendChild(label);
+        item.appendChild(bar);
+        root.appendChild(item);
+      });
+    }
+
+    function setDisabled(control, disabled) {
+      control.disabled = disabled;
+      const wrapper = control.closest("label");
+      if (wrapper) wrapper.style.opacity = disabled ? "0.55" : "1";
+    }
+
+    function updateControls() {
+      const mode = modeSelect.value;
+      const influenceLayerScope = mode === "influence" && influenceScope.value === "layer";
+      const aggregateMode = mode === "aggregate";
+      const singleMode = mode === "single" || influenceLayerScope;
+      const multiMode = mode === "multi" || (mode === "influence" && !influenceLayerScope);
+      const controlKey = `${mode}:${influenceScope.value}`;
+      const wasMultiMode = previousControlKey.startsWith("multi:") || previousControlKey === "influence:all";
+
+      setDisabled(layerSelect, !(singleMode || influenceLayerScope));
+      setDisabled(influenceScope, mode !== "influence");
+      setDisabled(interToggle, !multiMode);
+      setDisabled(intraToggle, false);
+      [...layerChecks.querySelectorAll("input[type='checkbox']")].forEach(input => {
+        input.disabled = !multiMode;
+        input.closest("label").style.opacity = input.disabled ? "0.55" : "1";
+      });
+
+      if (!multiMode) interToggle.checked = false;
+      if (multiMode && !wasMultiMode) interToggle.checked = true;
+      if (bridgeOnlyToggle.checked) bridgeToggle.checked = true;
+      if (!intraToggle.checked && !interToggle.checked) intraToggle.checked = true;
+      previousControlKey = controlKey;
+    }
+
+    function buildControls() {
+      DATA.layers.forEach((layer, index) => {
+        const option = document.createElement("option");
+        option.value = layer;
+        option.textContent = `Layer ${layer}`;
+        layerSelect.appendChild(option);
+
+        const label = document.createElement("label");
+        label.className = "layer-option";
+        const checked = index < Math.min(4, DATA.layers.length) ? "checked" : "";
+        label.innerHTML = `
+          <input type="checkbox" value="${escapeText(layer)}" ${checked}>
+          <span class="swatch" style="background:${layerColor(layer)}"></span>
+          <span>Layer ${escapeText(layer)}</span>
+        `;
+        layerChecks.appendChild(label);
+      });
+      [...document.querySelectorAll("select, input")].forEach(control => {
+        control.addEventListener("change", () => {
+          updateControls();
+          render();
+        });
+      });
+      updateControls();
+    }
+
+    buildControls();
+    renderProfile();
+    render();
+  </script>
+</body>
+</html>
