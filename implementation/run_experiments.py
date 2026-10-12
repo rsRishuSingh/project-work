@@ -26,6 +26,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 
 import time
 import json
+import pickle
 import argparse
 import numpy as np
 import pandas as pd
@@ -59,6 +60,7 @@ DATASETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dataset
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 TABLES_DIR = os.path.join(RESULTS_DIR, "tables")
 PLOTS_DIR = os.path.join(RESULTS_DIR, "plots")
+CHECKPOINTS_DIR = os.path.join(RESULTS_DIR, "checkpoints")
 
 # SI model parameters (from the paper)
 LAMBDA_VALUES = [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20]
@@ -71,7 +73,7 @@ METHOD_NAMES = ['CWIIIF', 'sumDC', 'sumBC', 'sumPR', 'aggKS']
 
 def create_output_dirs():
     """Create output directories if they don't exist."""
-    for d in [RESULTS_DIR, TABLES_DIR, PLOTS_DIR]:
+    for d in [RESULTS_DIR, TABLES_DIR, PLOTS_DIR, CHECKPOINTS_DIR]:
         os.makedirs(d, exist_ok=True)
 
 
@@ -232,29 +234,97 @@ def run_experiment_on_dataset(network, num_runs=100, skip_si=False, lambda_value
     return results
 
 
-def save_results_table(all_results, output_dir):
-    """Save results as formatted text and CSV tables."""
+def _make_json_serializable(obj):
+    """Recursively convert numpy types, tuples, and non-string dict keys for JSON."""
+    if isinstance(obj, (np.integer, np.floating)):
+        return obj.item()
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {str(k): _make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [_make_json_serializable(item) for item in obj]
+    return obj
 
-    # ─── Top-10 Nodes Table ───
-    for res in all_results:
-        ds_name = res['dataset']
-        ranking = res['cwiiif_ranking']
 
-        rows = []
-        for rank, (node, score) in enumerate(ranking, 1):
-            rows.append([rank, node, f"{score:.6f}"])
+def save_single_dataset(res, tables_dir, plots_dir, checkpoints_dir):
+    """
+    Save tables, plots, and checkpoints (.pkl and .json) for a single dataset immediately.
+    Ensures that no progress is lost if execution is interrupted later.
+    """
+    ds_name = res['dataset']
 
-        table_str = tabulate(rows, headers=['Rank', 'Node', 'TI Score'],
-                            tablefmt='grid', stralign='right')
-        filepath = os.path.join(output_dir, f'ranking_{ds_name}.txt')
-        with open(filepath, 'w') as f:
-            f.write(f"CWIIIF Node Ranking — {ds_name}\n")
-            f.write(f"N={res['N']}, L={res['L']}, |E|={res['E']}\n\n")
-            f.write(table_str)
+    # 1. Save binary checkpoint (.pkl) for lossless restoration
+    pkl_path = os.path.join(checkpoints_dir, f"checkpoint_{ds_name}.pkl")
+    with open(pkl_path, 'wb') as f:
+        pickle.dump(res, f)
 
-    # ─── Monotonicity Comparison Table ───
+    # 2. Save readable JSON checkpoint (.json)
+    json_path = os.path.join(checkpoints_dir, f"checkpoint_{ds_name}.json")
+    try:
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(_make_json_serializable(res), f, indent=2)
+    except Exception as e:
+        print(f"    [Warning] Could not save JSON checkpoint for {ds_name}: {e}")
+
+    # 3. Save Ranking Table
+    ranking = res['cwiiif_ranking']
+    rows = []
+    for rank, (node, score) in enumerate(ranking, 1):
+        rows.append([rank, node, f"{score:.6f}"])
+
+    table_str = tabulate(rows, headers=['Rank', 'Node', 'TI Score'],
+                        tablefmt='grid', stralign='right')
+    rank_filepath = os.path.join(tables_dir, f'ranking_{ds_name}.txt')
+    with open(rank_filepath, 'w', encoding='utf-8') as f:
+        f.write(f"CWIIIF Node Ranking — {ds_name}\n")
+        f.write(f"N={res['N']}, L={res['L']}, |E|={res['E']}\n\n")
+        f.write(table_str)
+
+    # 4. Save Layer Weights Table
+    weights = res['layer_weights']
+    rows = []
+    for lid, details in sorted(weights.items()):
+        rows.append([lid, f"{details['NAN']:.4f}", f"{details['NAP']:.4f}",
+                    f"{details['NICI']:.4f}", f"{details['W']:.4f}"])
+    table_str = tabulate(rows, headers=['Layer', 'NAN', 'NAP', 'NICI', 'W(α)'],
+                        tablefmt='grid', stralign='right')
+    lw_filepath = os.path.join(tables_dir, f'layer_weights_{ds_name}.txt')
+    with open(lw_filepath, 'w', encoding='utf-8') as f:
+        f.write(f"Layer Weight Coefficients — {ds_name}\n\n")
+        f.write(table_str)
+
+    # 5. Save Plots for this dataset immediately
+    if res.get('spearman'):
+        plot_spearman_vs_lambda(res['spearman'], ds_name, plots_dir)
+    if res.get('imprecision'):
+        plot_imprecision(res['imprecision'], ds_name, plots_dir)
+    if res.get('connectivity'):
+        plot_network_connectivity(res['connectivity'], ds_name, plots_dir)
+
+    print(f"\n  💾 [Immediate Save] Tables, plots, and checkpoints safely saved for '{ds_name}'")
+
+
+def update_aggregate_results(all_results, tables_dir, plots_dir):
+    """Update multi-dataset tables and plots (e.g. monotonicity comparison) incrementally."""
+    # Combine in-memory results with any existing checkpoints on disk
+    combined_results = {r['dataset']: r for r in all_results}
+    if os.path.exists(CHECKPOINTS_DIR):
+        for fname in os.listdir(CHECKPOINTS_DIR):
+            if fname.startswith("checkpoint_") and fname.endswith(".pkl"):
+                ds_name = fname[len("checkpoint_"):-len(".pkl")]
+                if ds_name not in combined_results:
+                    ckpt = load_dataset_checkpoint(ds_name, CHECKPOINTS_DIR)
+                    if ckpt:
+                        combined_results[ds_name] = ckpt
+
+    merged = list(combined_results.values())
+    if not merged:
+        return
+
+    # Monotonicity Comparison Table
     mono_rows = []
-    for res in all_results:
+    for res in merged:
         row = [res['dataset']]
         for method in METHOD_NAMES:
             row.append(f"{res['monotonicity'].get(method, 0.0):.4f}")
@@ -262,58 +332,52 @@ def save_results_table(all_results, output_dir):
 
     mono_table = tabulate(mono_rows, headers=['Dataset'] + METHOD_NAMES,
                          tablefmt='grid', stralign='right')
-    filepath = os.path.join(output_dir, 'monotonicity_all.txt')
-    with open(filepath, 'w') as f:
+    filepath = os.path.join(tables_dir, 'monotonicity_all.txt')
+    with open(filepath, 'w', encoding='utf-8') as f:
         f.write("Monotonicity Index Comparison\n\n")
         f.write(mono_table)
 
-    # ─── Layer Weights Table ───
-    for res in all_results:
-        ds_name = res['dataset']
-        weights = res['layer_weights']
-        rows = []
-        for lid, details in sorted(weights.items()):
-            rows.append([lid, f"{details['NAN']:.4f}", f"{details['NAP']:.4f}",
-                        f"{details['NICI']:.4f}", f"{details['W']:.4f}"])
-        table_str = tabulate(rows, headers=['Layer', 'NAN', 'NAP', 'NICI', 'W(α)'],
-                            tablefmt='grid', stralign='right')
-        filepath = os.path.join(output_dir, f'layer_weights_{ds_name}.txt')
-        with open(filepath, 'w') as f:
-            f.write(f"Layer Weight Coefficients — {ds_name}\n\n")
-            f.write(table_str)
+    # Monotonicity Comparison Plot
+    dataset_names = [r['dataset'] for r in merged]
+    mono_data = {r['dataset']: r['monotonicity'] for r in merged}
+    plot_monotonicity(mono_data, dataset_names, plots_dir)
 
-    print(f"\n  ✓ Tables saved to {output_dir}")
+
+def load_dataset_checkpoint(dataset_name, checkpoints_dir):
+    """
+    Load saved checkpoint for a dataset if it exists.
+    Returns result dict or None.
+    """
+    pkl_path = os.path.join(checkpoints_dir, f"checkpoint_{dataset_name}.pkl")
+    if os.path.exists(pkl_path):
+        try:
+            with open(pkl_path, 'rb') as f:
+                res = pickle.load(f)
+            return res
+        except Exception as e:
+            print(f"  ⚠ Failed to load checkpoint {pkl_path}: {e}")
+            return None
+    return None
+
+
+def save_results_table(all_results, output_dir):
+    """Save results as formatted text and CSV tables."""
+    for res in all_results:
+        save_single_dataset(res, TABLES_DIR, PLOTS_DIR, CHECKPOINTS_DIR)
+    update_aggregate_results(all_results, TABLES_DIR, PLOTS_DIR)
 
 
 def generate_all_plots(all_results, output_dir):
     """Generate all visualization plots."""
-    dataset_names = [r['dataset'] for r in all_results]
-
-    # ─── Monotonicity Bar Chart ───
-    mono_data = {r['dataset']: r['monotonicity'] for r in all_results}
-    plot_monotonicity(mono_data, dataset_names, output_dir)
-    print(f"    ✓ Monotonicity comparison plot saved")
-
-    # ─── Per-dataset plots ───
     for res in all_results:
         ds_name = res['dataset']
-
-        # Spearman vs λ
         if res.get('spearman'):
             plot_spearman_vs_lambda(res['spearman'], ds_name, output_dir)
-            print(f"    ✓ Spearman plot saved for {ds_name}")
-
-        # Imprecision
         if res.get('imprecision'):
             plot_imprecision(res['imprecision'], ds_name, output_dir)
-            print(f"    ✓ Imprecision plot saved for {ds_name}")
-
-        # Network Connectivity
         if res.get('connectivity'):
             plot_network_connectivity(res['connectivity'], ds_name, output_dir)
-            print(f"    ✓ Connectivity plot saved for {ds_name}")
-
-    print(f"\n  ✓ All plots saved to {output_dir}")
+    update_aggregate_results(all_results, TABLES_DIR, output_dir)
 
 
 def print_summary(all_results):
@@ -380,6 +444,8 @@ def main():
                        help='Quick mode: fewer SI runs (10 instead of 100)')
     parser.add_argument('--lambdas', nargs='+', type=float, default=None,
                        help='Specific lambda values to test')
+    parser.add_argument('--resume', action='store_true',
+                       help='Resume experiment by loading existing checkpoints and skipping completed datasets')
     args = parser.parse_args()
 
     create_output_dirs()
@@ -418,6 +484,18 @@ def main():
     total_start = time.time()
 
     for net in all_networks:
+        # Check if we should resume from existing checkpoint
+        if args.resume:
+            cached_res = load_dataset_checkpoint(net.name, CHECKPOINTS_DIR)
+            if cached_res is not None:
+                print(f"\n{'═'*70}")
+                print(f"  Dataset: {net.name} (N={net.num_nodes}, L={net.num_layers}, |E|={net.total_edges()})")
+                print(f"  ⏭ Resuming: Loaded existing checkpoint from disk (computation skipped)")
+                print(f"{'═'*70}")
+                all_results.append(cached_res)
+                update_aggregate_results(all_results, TABLES_DIR, PLOTS_DIR)
+                continue
+
         net.summary()
         result = run_experiment_on_dataset(
             net,
@@ -427,20 +505,19 @@ def main():
         )
         all_results.append(result)
 
+        # ─── Immediate Save: Save this dataset's results immediately ───
+        save_single_dataset(result, TABLES_DIR, PLOTS_DIR, CHECKPOINTS_DIR)
+        update_aggregate_results(all_results, TABLES_DIR, PLOTS_DIR)
+
     total_time = time.time() - total_start
 
     # ════════════════════════════════════════
-    # Save results
+    # Summary
     # ════════════════════════════════════════
-    print(f"\n  ▶ Saving results...")
-    save_results_table(all_results, TABLES_DIR)
+    print(f"\n  ✓ All tables saved to: {TABLES_DIR}")
+    print(f"  ✓ All plots saved to: {PLOTS_DIR}")
+    print(f"  ✓ All checkpoints saved to: {CHECKPOINTS_DIR}")
 
-    print(f"\n  ▶ Generating plots...")
-    generate_all_plots(all_results, PLOTS_DIR)
-
-    # ════════════════════════════════════════
-    # Print summary
-    # ════════════════════════════════════════
     print_summary(all_results)
     print(f"\n  Total experiment time: {total_time:.1f}s ({total_time/60:.1f}min)")
 
